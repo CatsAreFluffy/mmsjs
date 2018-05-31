@@ -32,7 +32,7 @@ function termeq(x,y){
 }
 function occurs(v,exp){
 	if(exp.type=="var"){
-		return (exp.scope==v.scope&&exp.quant==v.quant&&exp.id==v.id)
+		return (exp.scope==v.scope&&exp.quant==v.quant&&exp.sort==v.sort&&exp.id==v.id)
 	}else{
 		for(var i=0;i<connectives[exp.op].length;i++){
 			if(occurs(exp[i],v)){
@@ -50,21 +50,21 @@ function subst(exp,a,b){
 			return exp
 		}
 	}else{
-		texp=Object.assign({},exp)
+		var texp=Object.assign({},exp)
 		for(var i=0;i<connectives[exp.op].length;i++){
 			texp[i]=subst(exp[i],a,b)
 		}
+		return texp
 	}
 }
 function unify(eq,dv){
-	eq2=Object.assign([],eq)
-	out=[]
-	cont=true
-	while(cont){
-		cont=false
+	var eq2=Object.assign([],eq)
+	var out=[]
+	var cont=true
+	while(eq2.length>0){
 		for(var i=0;i<eq2.length;i++){
-			l=eq2[i][0]
-			r=eq2[i][1]
+			var l=eq2[i][0]
+			var r=eq2[i][1]
 			if(termeq(l,r)){ //delete
 				eq2.splice(i,1)
 				cont=true
@@ -84,7 +84,8 @@ function unify(eq,dv){
 			}else if(occurs(l,r)){ //check
 				return false
 			}else{ //eliminate
-				temp=eq2.splice(i,1)
+				cont=true
+				var temp=eq2.splice(i,1)
 				for(var j=0;j<eq2.length;j++){
 					for(var k=0;k<2;k++){
 						eq2[j][k]=subst(eq2[j][k],l,r)
@@ -101,10 +102,109 @@ function unify(eq,dv){
 	}
 	return {eq:out}
 }
+function renumber(exp,after,lb,gb){
+	var after2=after;
+	if(exp.type=="var"){
+		if(exp.scope=="l"){
+			var lb2;
+			if(lb[[exp.sort,exp.id]]){
+				lb2=lb
+			}else{
+				lb2=Object.assign({},lb)
+				lb2[[exp.sort,exp.id]]=after
+				after2++
+			}
+			return {exp:{type:"var",scope:"l",quant:exp.quant,sort:exp.sort,id:lb2[[exp.sort,exp.id]]},after:after2,lb:lb2,gb:gb}
+		}else{
+			var gb2;
+			if(gb[[exp.sort,exp.id]]){
+				gb2=gb
+			}else{
+				gb2=Object.assign({},gb)
+				gb2[[exp.sort,exp.id]]=after
+				after2++
+			}
+			return {exp:{type:"var",scope:"g",quant:exp.quant,sort:exp.sort,id:gb[[exp.sort,exp.id]]},after:after2,lb:lb,gb:gb2}
+		}
+	}else{
+		var exp2=Object.assign({},exp)
+		var lb2=lb
+		var gb2=gb
+		for(var i=0;i<connectives[exp.op].length;i++){
+			var t=renumber(exp[i],after2,lb2,gb2)
+			after2=t.after
+			lb2=t.lb
+			gb2=t.gb
+			exp2[i]=t.exp
+		}
+		return {exp:exp2,after:after2,lb:lb2,gb:gb2}
+	}
+}
+//should probably be replaced with more general inference application
+function mp(){
+	renumberstack()
+	var maj=stack.pop()
+	var min=stack.pop()
+	var uni=unify([[maj,{type:"const",op:"->",sort:"wff",0:min,1:{type:"var",scope:"l",quant:"u",sort:"wff",id:-1}}]])
+	if(uni){
+		for(var i=0;i<uni.eq.length;i++){
+			if(uni.eq[i][0].id==-1){
+				stack.push(uni.eq[i][1])
+			}else if(uni.eq[i][1].id==-1){
+				stack.push(uni.eq[i][0])
+			}
+		}
+	}
+}
+display={"->":["(",0,"->",1,")"]}
+function print(exp){
+	if(exp.type=="var"){
+		return exp.sort+exp.id
+	}else{
+		var t=""
+		for(var i=0;i<display[exp.op].length;i++){
+			if(typeof display[exp.op][i]=="number"){
+				t+=print(exp[display[exp.op][i]])
+			}else{
+				t+=display[exp.op][i]
+			}
+		}
+		return t
+	}
+}
+stack=[]
+function renumberstack(){
+	var after=0;
+	for(var i=0;i<stack.length;i++){
+		var t=renumber(stack[i],after,{},{})
+		stack[i]=t.exp
+		after=t.after
+	}
+}
+function renderstack(){
+	renumberstack()
+	return stack.map(print).join("\n")
+}
 
+//test wff 1 is (P->R) test wff 2 is (P->Q)
 console.log(unify([[
-	{type:"const",op:"->",0:{type:"var",scope:"l",quant:"u",id:0},1:{type:"var",scope:"l",quant:"u",id:2}},
-	{type:"const",op:"->",0:{type:"var",scope:"l",quant:"u",id:0},1:{type:"var",scope:"l",quant:"u",id:1}}]]))
+	{type:"const",op:"->",sort:"wff",0:{type:"var",scope:"l",quant:"u",sort:"wff",id:0},1:{type:"var",scope:"l",quant:"u",sort:"wff",id:2}},
+	{type:"const",op:"->",sort:"wff",0:{type:"var",scope:"l",quant:"u",sort:"wff",id:0},1:{type:"var",scope:"l",quant:"u",sort:"wff",id:1}}]]))
+console.log(renumber(
+	{type:"const",op:"->",sort:"wff",0:{type:"var",scope:"l",quant:"u",sort:"wff",id:0},1:{type:"var",scope:"l",quant:"u",sort:"wff",id:2}}
+	,0,{},{}))
+console.log(print(
+	{type:"const",op:"->",sort:"wff",0:{type:"var",scope:"l",quant:"u",sort:"wff",id:0},1:{type:"var",scope:"l",quant:"u",sort:"wff",id:2}}
+	,0,{},{}))
+stack.push(
+	{type:"const",op:"->",sort:"wff",0:{type:"var",scope:"l",quant:"u",sort:"wff",id:0},1:{type:"var",scope:"l",quant:"u",sort:"wff",id:2}}
+	)
+stack.push(
+	{type:"const",op:"->",sort:"wff",0:{type:"var",scope:"l",quant:"u",sort:"wff",id:2},1:{type:"const",op:"->",sort:"wff",0:{type:"var",scope:"l",quant:"u",sort:"wff",id:0},1:{type:"var",scope:"l",quant:"u",sort:"wff",id:2}}}
+	)
+console.log(renderstack())
+mp()
+console.log(renderstack())
 </script>
 </head>
 <body>
