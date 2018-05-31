@@ -1,0 +1,112 @@
+<html>
+<head>
+<script type="text/javascript">
+//scope=local/global
+//quant=universal/existential
+wff={type:"const",op:"->",0:{type:"var",scope:"l",quant:"u",id:0},1:{type:"var",scope:"g",quant:"e",id:0}}
+//connective argument types
+connectives={"->":["wff","wff"]}
+function termeq(x,y){
+	if(x.type!=y.type){
+		return false
+	}else{
+		if(x.type=="const"){
+			if(x.op!=y.op){
+				return false
+			}else{
+				for(var i=0;i<connectives[x.op].length;i++){
+					if(!termeq(x[i],y[i])){
+						return false
+					}
+				}
+				return true
+			}
+		}else{
+			if(x.scope==y.scope&&x.quant==y.quant&&x.id==y.id){
+				return true
+			}else{
+				return false
+			}
+		}
+	}
+}
+function occurs(v,exp){
+	if(exp.type=="var"){
+		return (exp.scope==v.scope&&exp.quant==v.quant&&exp.id==v.id)
+	}else{
+		for(var i=0;i<connectives[exp.op].length;i++){
+			if(occurs(exp[i],v)){
+				return true
+			}
+		}
+		return false
+	}
+}
+function subst(exp,a,b){
+	if(exp.type=="var"){
+		if(termeq(exp,a)){
+			return b
+		}else{
+			return exp
+		}
+	}else{
+		texp=Object.assign({},exp)
+		for(var i=0;i<connectives[exp.op].length;i++){
+			texp[i]=subst(exp[i],a,b)
+		}
+	}
+}
+function unify(eq,dv){
+	eq2=Object.assign([],eq)
+	out=[]
+	cont=true
+	while(cont){
+		cont=false
+		for(var i=0;i<eq2.length;i++){
+			l=eq2[i][0]
+			r=eq2[i][1]
+			if(termeq(l,r)){ //delete
+				eq2.splice(i,1)
+				cont=true
+			}else if(l.type=="const"&&r.type=="const"){
+				if(l.op==r.op){ //decompose
+					eq2.splice(i,1)
+					cont=true
+					for(var j=0;j<connectives[l.op].length;j++){
+						eq2.push([l[j],r[j]])
+					}
+				}else{ //conflict
+					return false
+				}
+			}else if(l.type=="const"&&r.type=="var"){ //swap
+				eq2[i]=[r,l]
+				cont=true
+			}else if(occurs(l,r)){ //check
+				return false
+			}else{ //eliminate
+				temp=eq2.splice(i,1)
+				for(var j=0;j<eq2.length;j++){
+					for(var k=0;k<2;k++){
+						eq2[j][k]=subst(eq2[j][k],l,r)
+					}
+				}
+				for(j=0;j<out.length;j++){
+					for(var k=0;k<2;k++){
+						out[j][k]=subst(out[j][k],l,r)
+					}
+				}
+				out.push(temp[0])
+			}
+		}
+	}
+	return {eq:out}
+}
+
+console.log(unify([[
+	{type:"const",op:"->",0:{type:"var",scope:"l",quant:"u",id:0},1:{type:"var",scope:"l",quant:"u",id:2}},
+	{type:"const",op:"->",0:{type:"var",scope:"l",quant:"u",id:0},1:{type:"var",scope:"l",quant:"u",id:1}}]]))
+</script>
+</head>
+<body>
+</body>
+</html>
