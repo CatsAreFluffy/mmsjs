@@ -25,8 +25,9 @@ Classes +
 More definitions +
 Redo +
 Show proof onscreen +
-Unicode
-Release
+Unicode +
+Variable colors +
+Release +
 -->
 <script type="text/javascript">
 //scope=local/global
@@ -340,40 +341,37 @@ function swaptos(){
 }
 displayascii={"->":["(",0,"->",1,")"],"~":["~",0],"<->":["(",0,"<->",1,")"],"&":["(",0,"/\\",1,")"],"|":["(",0,"\\/",1,")"],"A.":["A",0,1],"E.":["E",0,1],"F.":["NF",0,1],"=":[0,"=",1],"<":[0,"&lt;",1],"set":[0],"sub":["[",0,"/",1,"]",2],"ab":["{",0,"|",1,"}"],"<=":[0,"<=",1],"u.":["(",0,"u.",1,")"],"i.":["(",0,"i.",1,")"],"(/)":["(/)"],"V.":["V."],"U.":["U.",0],"I.":["I.",0]}
 displayunicode={"->":["(",0,"&#x2192;",1,")"],"~":["&#xAC;",0],"<->":["(",0,"&#x2194;",1,")"],"&":["(",0,"&#x2227;",1,")"],"|":["(",0,"&#x2228;",1,")"],"A.":["&#x2200;",0,1],"E.":["&#x2203;",0,1],"F.":["&#x2132;",0,1],"=":[0,"=",1],"<":[0,"&#x2208;",1],"set":[0],"sub":["[",0,"/",1,"]",2],"ab":["{",0,"|",1,"}"],"<=":[0,"&#x2286;",1],"u.":["(",0,"&#x222A;",1,")"],"i.":["(",0,"&#x2229;",1,")"],"(/)":["&#x2298;"],"V.":["V."],"U.":["&#x222A;",0],"I.":["&#x2229;",0]}
-function toggleuni(){
-	if(display==displayunicode){
-		display=displayascii
-	}else{
-		display=displayunicode
-	}
-}
-display=displayunicode
 function print(exp){
 	if(exp.type=="var"){
+		var varnames;
 		if(exp.sort=="wff"){
-			const varnames="PQRSTUVWXYZ"
-			if(exp.id<11){
-				return varnames[exp.id]
-			}else{
-				return varnames[exp.id%11]+""+(Math.floor(exp.id/11)-1)
-			}
+			varnames="PQRSTUVWXYZ"
 		}else if(exp.sort=="set"){
-			const varnames="xyzwvutsrqp"
-			if(exp.id<11){
-				return varnames[exp.id]
-			}else{
-				return varnames[exp.id%11]+""+(Math.floor(exp.id/11)-1)
-			}
+			varnames="xyzwvutsrqp"
 		}else if(exp.sort=="class"){
-			const varnames="ABCDEFGHIJK"
-			if(exp.id<11){
-				return varnames[exp.id]
-			}else{
-				return varnames[exp.id%11]+""+(Math.floor(exp.id/11)-1)
-			}
+			varnames="ABCDEFGHIJK"
+		}else{
+			return exp.sort+exp.id
 		}
-		return exp.sort+exp.id
+		var left_tag=''
+		var right_tag=''
+		if(settings.var_colors){
+			left_tag='<span class="var_'+exp.sort+'">'
+			right_tag='</span>'
+		}
+		if(exp.id<11){
+			return left_tag+varnames[exp.id]+right_tag
+		}else{
+			return left_tag+varnames[exp.id%11]+(Math.floor(exp.id/11)-1)+right_tag
+		}
+
 	}else{
+		var display;
+		if(settings.unicode){
+			display=displayunicode
+		}else{
+			display=displayascii
+		}
 		var t=""
 		for(var i=0;i<display[exp.op].length;i++){
 			if(typeof display[exp.op][i]=="number"){
@@ -524,22 +522,53 @@ function dvreplace(dv,rep){
 function renumberstack(){
 	var afters=0;
 	var gb={};
-	for(var i=stack.length-1;i>=0;i--){
-		var t=renumber(stack[i].formula,afters,{},gb)
-		stack[i].formula=t.exp
-		afters=t.afters
-		gb=t.gb
-		stack[i].dv=dvreplace(stack[i].dv,t.lb)
+	if(settings.reverse){
+		for(var i=stack.length-1;i>=0;i--){
+			var t=renumber(stack[i].formula,afters,{},gb)
+			stack[i].formula=t.exp
+			afters=t.afters
+			gb=t.gb
+			stack[i].dv=dvreplace(stack[i].dv,t.lb)
+		}	
+	}else{
+		for(var i=0;i<stack.length;i++){
+			var t=renumber(stack[i].formula,afters,{},gb)
+			stack[i].formula=t.exp
+			afters=t.afters
+			gb=t.gb
+			stack[i].dv=dvreplace(stack[i].dv,t.lb)
+		}	
 	}
 }
 function renderstack(sep){
 	renumberstack()
-	var ret=stack.reverse().map(a=>printdv(a)).join(sep)
-	stack.reverse()
+	if(settings.reverse){
+		stack.reverse()
+	}
+	var ret=stack.map(a=>printdv(a)).join(sep)
+	if(settings.reverse){
+		stack.reverse()
+	}
 	return ret
 }
 function showstack(){
 	stackbox.innerHTML=renderstack("<br>")
+}
+settings={unicode:true,var_colors:true,reverse:true}
+function animation(fwd){
+	if(fwd){
+		if(redostack.length){
+			redo()
+			showstack()
+			setTimeout(animation,100,fwd)
+		}
+	}else{
+		if(undostack.length){
+			undo()
+			showstack()
+			setTimeout(animation,100,fwd)
+		}
+	}
 }
 //test script for b1/2 features, might not work anymore
 function test(){
@@ -564,9 +593,20 @@ function test(){
 	console.log(renderstack())
 }
 </script>
+<style>
+.var_wff {
+	color:blue;
+}
+.var_set {
+	color:red;
+}
+.var_class {
+	color:purple;
+}
+</style>
 </head>
 <body>
-Metamath Solitaire JS (build 5, May 30/31)
+Metamath Solitaire JS (build 5.1, May 31)
 <br>
 <button onclick="pushthm('ax-1');showstack()">ax1</button>
 <button onclick="pushthm('ax-2');showstack()">ax2</button>
@@ -618,13 +658,18 @@ Metamath Solitaire JS (build 5, May 30/31)
 <br>
 <button onclick="undo();showstack()">undo</button>
 <button onclick="redo();showstack()">redo</button>
+<button onclick="animation(redostack.length)">animation</button>
 <button onclick="deletetos();showstack()">delete top</button>
 <button onclick="swaptos();showstack()">swap top</button>
-<button onclick="console.log(showproof(stack[stack.length-1].proof));alert(showproof(stack[stack.length-1].proof))">show proof</button>
 <button onclick="savethm()">save top</button>
 <button onclick="loadthm();showstack()">load</button>
+<button onclick="console.log(showproof(stack[stack.length-1].proof));alert(showproof(stack[stack.length-1].proof))">export top</button>
 <button onclick="importthm();showstack()">import</button>
-<button onclick="toggleuni();showstack()">toggle unicode</button>
+<br>
+<button onclick="settings.unicode^=1;showstack()">toggle unicode</button>
+<button onclick="settings.var_colors^=1;showstack()">toggle varcolors</button>
+<button onclick="settings.reverse^=1;showstack()">toggle reverse stack</button>
 <div id="stackbox"></div>
+<a href="http://us.metamath.org/mpeuni/mmset.html">Metamath</a>
 </body>
 </html>
