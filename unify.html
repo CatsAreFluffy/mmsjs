@@ -462,7 +462,7 @@ function test(){
 </script>
 </head>
 <body>
-Metamath Solitaire JS (build 4, May 29/30)
+Metamath Solitaire JS (build 4.1, May 30)
 <br>
 <button onclick="pushaxiom(parseaxiom([0,1,'->',0,'->']),[],'ax-1');showstack()">ax1</button>
 <button onclick="pushaxiom(parseaxiom([2,0,'->',1,0,'->','->',2,1,'->',0,'->','->']),[],'ax-2');showstack()">ax2</button>
@@ -493,7 +493,7 @@ Metamath Solitaire JS (build 4, May 29/30)
 <button onclick="pushaxiom(parseaxiom([0,0,'A.',0,'->']),parsedv([[['wff',0],['set',0]]]),'ax-16');showstack()">ax16</button>
 <button onclick="pushaxiom(parseaxiom([0,0,1,'=','&',1,'E.',0,0,1,'=','->','&',0,1,0,'sub','<->']),[],'df-sub');showstack()">dfsub</button>
 <br>
-<button onclick="pushaxiom(parseaxiom([2,1,'=',2,0,'<',1,0,'<','<->',0,'A.']),parsedv([[['set',0],['set',1]],[['set',0],['set',2]]]),'ax-ext');showstack()">axext</button>
+<button onclick="pushaxiom(parseaxiom([2,1,'=',2,0,'<',1,0,'<','<->',0,'A.','->']),parsedv([[['set',0],['set',1]],[['set',0],['set',2]]]),'ax-ext');showstack()">axext</button>
 <button onclick="pushaxiom(parseaxiom([0,1,0,'<','&',0,'E.',0,2,'<','<->',2,'A.',1,2,'=',0,'->',2,'A.',1,'E.','->',0,'E.']),parsedv([[['set',0],['set',1]],[['set',0],['set',2]],[['set',1],['set',2]],[['set',1],['wff',1]]]),'ax-rep');showstack()">axrep</button>
 <button onclick="pushaxiom(parseaxiom([0,1,'<',2,0,'<',0,1,'<','&',0,'E.','->',1,'A.',0,'E.']),parsedv([[['set',0],['set',1]],[['set',0],['set',2]],[['set',1],['set',2]]]),'ax-un');showstack()">axun</button>
 <button onclick="pushaxiom(parseaxiom([0,1,'<',2,0,'<',1,0,'<','->',0,'A.','->',1,'A.',0,'E.']),parsedv([[['set',0],['set',1]],[['set',0],['set',2]],[['set',1],['set',2]]]),'ax-pow');showstack()">axpow</button>
