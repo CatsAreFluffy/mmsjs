@@ -1,11 +1,31 @@
 <html>
 <head>
+<!--
+Plans:
+MP fail correctly +
+Undo +
+Negation +
+Axiom clicks +
+UI +
+Record proofs +
+Better varnames in output +
+Store types of connective outputs +
+Sets +
+Equality +
+Fix bug involving renumbering ax10 +
+Containment
+Save theorems
+Distinct variable conditions
+Set theory
+Import theorems from axiom string
+Definitions and classes
+-->
 <script type="text/javascript">
 //scope=local/global
 //quant=universal/existential
 wff={type:"const",op:"->",0:{type:"var",scope:"l",quant:"u",id:0},1:{type:"var",scope:"g",quant:"e",id:0}}
 //connective argument types
-connectives={"->":["wff","wff"]}
+connectives={"->":{in:["wff","wff"],out:"wff"},"~":{in:["wff"],out:"wff"},"A.":{in:["set","wff"],out:"wff"},"=":{in:["set","set"],out:"wff"}}
 function termeq(x,y){
 	if(x.type!=y.type){
 		return false
@@ -14,7 +34,7 @@ function termeq(x,y){
 			if(x.op!=y.op){
 				return false
 			}else{
-				for(var i=0;i<connectives[x.op].length;i++){
+				for(var i=0;i<connectives[x.op].in.length;i++){
 					if(!termeq(x[i],y[i])){
 						return false
 					}
@@ -22,7 +42,7 @@ function termeq(x,y){
 				return true
 			}
 		}else{
-			if(x.scope==y.scope&&x.quant==y.quant&&x.id==y.id){
+			if(x.scope==y.scope&&x.quant==y.quant&&x.sort==y.sort&&x.id==y.id){
 				return true
 			}else{
 				return false
@@ -34,7 +54,7 @@ function occurs(v,exp){
 	if(exp.type=="var"){
 		return (exp.scope==v.scope&&exp.quant==v.quant&&exp.sort==v.sort&&exp.id==v.id)
 	}else{
-		for(var i=0;i<connectives[exp.op].length;i++){
+		for(var i=0;i<connectives[exp.op].in.length;i++){
 			if(occurs(exp[i],v)){
 				return true
 			}
@@ -51,7 +71,7 @@ function subst(exp,a,b){
 		}
 	}else{
 		var texp=Object.assign({},exp)
-		for(var i=0;i<connectives[exp.op].length;i++){
+		for(var i=0;i<connectives[exp.op].in.length;i++){
 			texp[i]=subst(exp[i],a,b)
 		}
 		return texp
@@ -72,7 +92,7 @@ function unify(eq,dv){
 				if(l.op==r.op){ //decompose
 					eq2.splice(i,1)
 					cont=true
-					for(var j=0;j<connectives[l.op].length;j++){
+					for(var j=0;j<connectives[l.op].in.length;j++){
 						eq2.push([l[j],r[j]])
 					}
 				}else{ //conflict
@@ -102,63 +122,143 @@ function unify(eq,dv){
 	}
 	return {eq:out}
 }
-function renumber(exp,after,lb,gb){
-	var after2=after;
+function renumber(exp,afters,lb,gb){
+	var afters2=Object.assign({},afters);
 	if(exp.type=="var"){
 		if(exp.scope=="l"){
 			var lb2;
-			if(lb[[exp.sort,exp.id]]){
+			if(Object.keys(lb).includes([exp.sort,exp.id]+"")){
 				lb2=lb
 			}else{
 				lb2=Object.assign({},lb)
-				lb2[[exp.sort,exp.id]]=after
-				after2++
+				if(!afters2[exp.sort]){
+					afters2[exp.sort]=0
+				}
+				lb2[[exp.sort,exp.id]]=afters2[exp.sort]
+				afters2[exp.sort]++
 			}
-			return {exp:{type:"var",scope:"l",quant:exp.quant,sort:exp.sort,id:lb2[[exp.sort,exp.id]]},after:after2,lb:lb2,gb:gb}
+			return {exp:{type:"var",scope:"l",quant:exp.quant,sort:exp.sort,id:lb2[[exp.sort,exp.id]]},afters:afters2,lb:lb2,gb:gb}
 		}else{
 			var gb2;
-			if(gb[[exp.sort,exp.id]]){
+			if(Object.keys(gb).includes([exp.sort,exp.id]+"")){
 				gb2=gb
 			}else{
 				gb2=Object.assign({},gb)
-				gb2[[exp.sort,exp.id]]=after
-				after2++
+				if(!afters2[exp.sort]){
+					afters2[exp.sort]=0
+				}
+				gb2[[exp.sort,exp.id]]=afters2[exp.sort]
+				afters2[exp.sort]++
 			}
-			return {exp:{type:"var",scope:"g",quant:exp.quant,sort:exp.sort,id:gb[[exp.sort,exp.id]]},after:after2,lb:lb,gb:gb2}
+			return {exp:{type:"var",scope:"g",quant:exp.quant,sort:exp.sort,id:gb[[exp.sort,exp.id]]},afters:afters2,lb:lb,gb:gb2}
 		}
 	}else{
 		var exp2=Object.assign({},exp)
 		var lb2=lb
 		var gb2=gb
-		for(var i=0;i<connectives[exp.op].length;i++){
-			var t=renumber(exp[i],after2,lb2,gb2)
-			after2=t.after
+		for(var i=0;i<connectives[exp.op].in.length;i++){
+			var t=renumber(exp[i],afters2,lb2,gb2)
+			afters2=t.afters
 			lb2=t.lb
 			gb2=t.gb
 			exp2[i]=t.exp
 		}
-		return {exp:exp2,after:after2,lb:lb2,gb:gb2}
+		return {exp:exp2,afters:afters2,lb:lb2,gb:gb2}
 	}
+}
+//converts postfix into formula format
+function parseaxiom(axl){
+	var tstack=[]
+	for(var i=0;i<axl.length;i++){
+		if(typeof axl[i]=="number"){
+			tstack.push({type:"var",scope:"l",quant:"u",sort:"wff",id:axl[i]})
+		}else{
+			var texp={type:"const",op:axl[i],sort:"wff"}
+			for(var j=0;j<connectives[axl[i]].in.length;j++){
+				texp[j]=tstack.pop()
+				texp[j].sort=connectives[axl[i]].in[j] //hack to autocast variables
+			}
+			tstack.push(texp)
+		}
+	}
+	return tstack.pop()
+}
+function pushaxiom(ax,name){
+	stack.push({formula:ax,proof:{name:name,args:[]}})
+	undostack.push({action:"ax",axiom:ax})
 }
 //should probably be replaced with more general inference application
 function mp(){
 	renumberstack()
+	if(stack.length<2){
+		return
+	}
 	var maj=stack.pop()
 	var min=stack.pop()
-	var uni=unify([[maj,{type:"const",op:"->",sort:"wff",0:min,1:{type:"var",scope:"l",quant:"u",sort:"wff",id:-1}}]])
+	var uni=unify([[maj.formula,{type:"const",op:"->",sort:"wff",0:min.formula,1:{type:"var",scope:"l",quant:"u",sort:"wff",id:-1}}]])
 	if(uni){
+		undostack.push({action:"mp",min:min,maj:maj})
 		for(var i=0;i<uni.eq.length;i++){
 			if(uni.eq[i][0].id==-1){
-				stack.push(uni.eq[i][1])
+				stack.push({formula:uni.eq[i][1],proof:{name:"ax-mp",args:[min,maj]}})
 			}else if(uni.eq[i][1].id==-1){
-				stack.push(uni.eq[i][0])
+				stack.push({formula:uni.eq[i][0],proof:{name:"ax-mp",args:[min,maj]}})
 			}
 		}
+	}else{
+		stack.push(min)
+		stack.push(maj)
 	}
 }
-display={"->":["(",0,"->",1,")"]}
+function gen(){
+	renumberstack()
+	if(stack.length<1){
+		return
+	}
+	var hyp=stack.pop()
+	stack.push({formula:{type:"const",op:"A.",sort:"wff",0:{type:"var",scope:"l",quant:"u",sort:"set",id:-1},1:hyp.formula},proof:{name:"ax-gen",args:[hyp]}})
+	undostack.push({action:"gen",hyp:hyp})
+}
+function undo(){
+	var undone=undostack.pop()
+	if(undone.action=="mp"){
+		stack.pop()
+		stack.push(undone.min)
+		stack.push(undone.maj)
+	}else if(undone.action=="ax"){
+		stack.pop()
+	}else if(undone.action=="delete"){
+		stack.push(undone.top)
+	}else if(undone.action=="swap"){
+		swaptos()
+		undostack.pop()
+	}else if(undone.action=="gen"){
+		stack.pop()
+		stack.push(undone.hyp)
+	}
+}
+function deletetos(){
+	var t=stack.pop()
+	undostack.push({action:"delete",top:t})
+}
+function swaptos(){
+	var t=stack.pop()
+	var s=stack.pop()
+	stack.push(t)
+	stack.push(s)
+	undostack.push({action:"swap"})
+}
+display={"->":["(",0,"->",1,")"],"~":["~",0],"A.":["A",0,1],"=":[0,"=",1]}
 function print(exp){
 	if(exp.type=="var"){
+		if(exp.sort=="wff"){
+			const varnames="PQRSTUVWXYZ"
+			if(exp.id<11){
+				return varnames[exp.id]
+			}else{
+				return varnames[exp.id%11]+""+(Math.floor(exp.id/11)-1)
+			}
+		}
 		return exp.sort+exp.id
 	}else{
 		var t=""
@@ -172,41 +272,83 @@ function print(exp){
 		return t
 	}
 }
+function showproof(proof){
+	var t=""
+	for(var i=0;i<proof.args.length;i++){
+		t+=showproof(proof.args[i].proof)
+		t+=" "
+	}
+	return t+proof.name
+}
 stack=[]
+undostack=[]
 function renumberstack(){
-	var after=0;
-	for(var i=0;i<stack.length;i++){
-		var t=renumber(stack[i],after,{},{})
-		stack[i]=t.exp
-		after=t.after
+	var afters=0;
+	var gb={};
+	for(var i=stack.length-1;i>=0;i--){
+		var t=renumber(stack[i].formula,afters,{},gb)
+		stack[i].formula=t.exp
+		afters=t.afters
+		gb=t.gb
 	}
 }
-function renderstack(){
+function renderstack(sep){
 	renumberstack()
-	return stack.map(print).join("\n")
+	var ret=stack.reverse().map(a=>print(a.formula)).join(sep)
+	stack.reverse()
+	return ret
 }
-
-//test wff 1 is (P->R) test wff 2 is (P->Q)
-console.log(unify([[
-	{type:"const",op:"->",sort:"wff",0:{type:"var",scope:"l",quant:"u",sort:"wff",id:0},1:{type:"var",scope:"l",quant:"u",sort:"wff",id:2}},
-	{type:"const",op:"->",sort:"wff",0:{type:"var",scope:"l",quant:"u",sort:"wff",id:0},1:{type:"var",scope:"l",quant:"u",sort:"wff",id:1}}]]))
-console.log(renumber(
-	{type:"const",op:"->",sort:"wff",0:{type:"var",scope:"l",quant:"u",sort:"wff",id:0},1:{type:"var",scope:"l",quant:"u",sort:"wff",id:2}}
-	,0,{},{}))
-console.log(print(
-	{type:"const",op:"->",sort:"wff",0:{type:"var",scope:"l",quant:"u",sort:"wff",id:0},1:{type:"var",scope:"l",quant:"u",sort:"wff",id:2}}
-	,0,{},{}))
-stack.push(
-	{type:"const",op:"->",sort:"wff",0:{type:"var",scope:"l",quant:"u",sort:"wff",id:0},1:{type:"var",scope:"l",quant:"u",sort:"wff",id:2}}
-	)
-stack.push(
-	{type:"const",op:"->",sort:"wff",0:{type:"var",scope:"l",quant:"u",sort:"wff",id:2},1:{type:"const",op:"->",sort:"wff",0:{type:"var",scope:"l",quant:"u",sort:"wff",id:0},1:{type:"var",scope:"l",quant:"u",sort:"wff",id:2}}}
-	)
-console.log(renderstack())
-mp()
-console.log(renderstack())
+function showstack(){
+	stackbox.innerHTML=renderstack("<br>")
+}
+//test script for b1/2 features, might not work anymore
+function test(){
+	//test wff 1 is (P->R) test wff 2 is (P->Q)
+	console.log(unify([[
+		{type:"const",op:"->",sort:"wff",0:{type:"var",scope:"l",quant:"u",sort:"wff",id:0},1:{type:"var",scope:"l",quant:"u",sort:"wff",id:2}},
+		{type:"const",op:"->",sort:"wff",0:{type:"var",scope:"l",quant:"u",sort:"wff",id:0},1:{type:"var",scope:"l",quant:"u",sort:"wff",id:1}}]]))
+	console.log(renumber(
+		{type:"const",op:"->",sort:"wff",0:{type:"var",scope:"l",quant:"u",sort:"wff",id:0},1:{type:"var",scope:"l",quant:"u",sort:"wff",id:2}}
+		,0,{},{}))
+	console.log(print(
+		{type:"const",op:"->",sort:"wff",0:{type:"var",scope:"l",quant:"u",sort:"wff",id:0},1:{type:"var",scope:"l",quant:"u",sort:"wff",id:2}}
+		,0,{},{}))
+	stack.push(
+		{type:"const",op:"->",sort:"wff",0:{type:"var",scope:"l",quant:"u",sort:"wff",id:0},1:{type:"var",scope:"l",quant:"u",sort:"wff",id:2}}
+		)
+	stack.push(
+		{type:"const",op:"->",sort:"wff",0:{type:"var",scope:"l",quant:"u",sort:"wff",id:2},1:{type:"const",op:"->",sort:"wff",0:{type:"var",scope:"l",quant:"u",sort:"wff",id:0},1:{type:"var",scope:"l",quant:"u",sort:"wff",id:2}}}
+		)
+	console.log(renderstack())
+	mp()
+	console.log(renderstack())
+}
 </script>
 </head>
 <body>
+Metamath Solitaire JS (build 3, May 28/29)
+<br>
+<button onclick="pushaxiom(parseaxiom([0,1,'->',0,'->']),'ax-1');showstack()">ax1</button>
+<button onclick="pushaxiom(parseaxiom([2,0,'->',1,0,'->','->',2,1,'->',0,'->','->']),'ax-2');showstack()">ax2</button>
+<button onclick="pushaxiom(parseaxiom([0,1,'->',1,'~',0,'~','->','->']),'ax-3');showstack()">ax3</button>
+<button onclick="mp();showstack()">axmp</button>
+<br>
+<button onclick="pushaxiom(parseaxiom([0,0,0,'A.','->']),'ax-4');showstack()">ax4</button>
+<button onclick="pushaxiom(parseaxiom([1,0,'A.',0,0,'A.','->',1,0,0,'A.','->',0,'A.','->']),'ax-5');showstack()">ax5</button>
+<button onclick="pushaxiom(parseaxiom([0,0,'A.','~',0,'A.',0,0,'A.','~','->']),'ax-6');showstack()">ax6</button>
+<button onclick="pushaxiom(parseaxiom([0,1,'A.',0,'A.',0,0,'A.',1,'A.','->']),'ax-7');showstack()">ax7</button>
+<button onclick="gen();showstack()">axgen</button>
+<br>
+<button onclick="pushaxiom(parseaxiom([2,1,'=',2,0,'=','->',1,0,'=','->']),'ax-8');showstack()">ax8</button>
+<button onclick="pushaxiom(parseaxiom([0,0,0,'A.',1,0,'=','->',0,'A.','->']),'ax-9');showstack()">ax9</button>
+<button onclick="pushaxiom(parseaxiom([0,1,'A.',0,0,'A.','->',1,0,'=',0,'A.','->']),'ax-10');showstack()">ax10</button>
+<button onclick="pushaxiom(parseaxiom([0,1,0,'=','->',0,'A.',0,'->',1,0,'=','->',1,0,'=',0,'A.','~','->']),'ax-11');showstack()">ax11</button>
+<button onclick="pushaxiom(parseaxiom([2,1,'=',0,'A.',2,1,'=','->',2,0,'=',0,'A.','~','->',1,0,'=',0,'A.','~','->']),'ax-12');showstack()">ax12</button>
+<br>
+<button onclick="undo();showstack()">undo</button>
+<button onclick="deletetos();showstack()">delete top</button>
+<button onclick="swaptos();showstack()">swap top</button>
+<button onclick="console.log(showproof(stack[stack.length-1].proof))">show proof</button>
+<div id="stackbox"></div>
 </body>
 </html>
