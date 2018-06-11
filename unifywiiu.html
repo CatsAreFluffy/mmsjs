@@ -35,6 +35,9 @@ Export/import with clipboard
 <script type="text/javascript">
 //wii u debugging
 debugu=true
+if(debugu){
+	alert("Alert works")
+}
 //scope=local/global (global vars occur in hypotheses)
 //quant=universal/existential (p vs $1)
 wff={type:"const",op:"->",0:{type:"var",scope:"l",quant:"u",id:0},1:{type:"var",scope:"g",quant:"e",id:0}}
@@ -643,7 +646,7 @@ if(debugu){
 </style>
 </head>
 <body>
-Metamath Solitaire JS (build 7.2.1, June 11)
+Metamath Solitaire JS (build 7.2.2, June 11)
 <br>
 <button onclick="pushclick('ax-1')">ax1</button>
 <button onclick="pushclick('ax-2')">ax2</button>
