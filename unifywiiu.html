@@ -34,9 +34,15 @@ Export/import with clipboard
 -->
 <script type="text/javascript">
 //wii u debugging
+function update(name,value){
+	document.getElementById(name).innerHTML=value
+}
 debugu=true
+function debugout(x){
+	update("stackbox",x)
+}
 if(debugu){
-	alert("Alert works")
+	debugout("Ahem")
 }
 //scope=local/global (global vars occur in hypotheses)
 //quant=universal/existential (p vs $1)
@@ -581,7 +587,7 @@ function renderstack(sep){
 	return ret
 }
 function showstack(){
-	stackbox.innerHTML=renderstack("<br>")
+	update("stackbox",renderstack("<br>"))
 }
 function pushclick(n){
 	try{
@@ -646,7 +652,7 @@ if(debugu){
 </style>
 </head>
 <body>
-Metamath Solitaire JS (build 7.2.2, June 11)
+Metamath Solitaire JS (build 7.2.3, June 11)
 <br>
 <button onclick="pushclick('ax-1')">ax1</button>
 <button onclick="pushclick('ax-2')">ax2</button>
