@@ -33,6 +33,8 @@ Fix distinct variables not carrying over with substitutions +
 Export/import with clipboard
 -->
 <script type="text/javascript">
+//wii u debugging
+debugu=true
 //scope=local/global (global vars occur in hypotheses)
 //quant=universal/existential (p vs $1)
 wff={type:"const",op:"->",0:{type:"var",scope:"l",quant:"u",id:0},1:{type:"var",scope:"g",quant:"e",id:0}}
@@ -97,7 +99,8 @@ function vars(exp){
 		for(var i=0;i<connectives[exp.op].in.length;i++){
 			var o=vars(exp[i])
 			for(var j=0;j<o.length;j++){
-				if(t.every(a=>!termeq(a,o[j]))){
+				//if(t.every(a=>!termeq(a,o[j]))){
+				if(t.every(function(a){!termeq(a,o[j])})){
 					t.push(o[j])
 				}
 			}
@@ -153,7 +156,8 @@ function unify(eq,dv){
 		var tvars=vars(out[i][1])
 		var dv3=[]
 		for(var j=0;j<dv2.length;j++){
-			var ind=dv2[j].findIndex(a=>termeq(a,out[i][0]))
+			//var ind=dv2[j].findIndex(a=>termeq(a,out[i][0]))
+			var ind=dv2[j].findIndex(function(a){termeq(a,out[i][0])})
 			if(ind>-1){
 				for(var k=0;k<tvars.length;k++){
 					var t=Object.assign([],dv2[j])
@@ -271,7 +275,8 @@ function mp(){
 			}
 		}
 		for(var i=0;i<dv2.length;i++){
-			if(!dv2[i].every(a=>vars(form).some(b=>termeq(a,b)))){
+			//if(!dv2[i].every(a=>vars(form).some(b=>termeq(a,b)))){
+			if(!dv2[i].every(function(a){vars(form).some(b=>termeq(a,b))})){
 				dv2.splice(i--,1) //todo: generalize to larger groups
 			}
 		}
@@ -565,7 +570,8 @@ function renderstack(sep){
 	if(settings.reverse){
 		stack.reverse()
 	}
-	var ret=stack.map(a=>printdv(a)).join(sep)
+	//var ret=stack.map(a=>printdv(a)).join(sep)
+	var ret=stack.map(printdv).join(sep)
 	if(settings.reverse){
 		stack.reverse()
 	}
@@ -573,6 +579,10 @@ function renderstack(sep){
 }
 function showstack(){
 	stackbox.innerHTML=renderstack("<br>")
+}
+function pushclick(n){
+	pushthm(n)
+	showstack()
 }
 settings={unicode:true,var_colors:true,reverse:true}
 function animation(fwd){
@@ -626,10 +636,10 @@ function test(){
 </style>
 </head>
 <body>
-Metamath Solitaire JS (build 7.1, June 11)
+Metamath Solitaire JS (build 7.2, June 11)
 <br>
-<button onclick="pushthm('ax-1');showstack()">ax1</button>
-<button onclick="pushthm('ax-2');showstack()">ax2</button>
+<button onclick="pushclick('ax-1')">ax1</button>
+<button onclick="pushclick('ax-2')">ax2</button>
 <button onclick="pushthm('ax-3');showstack()">ax3</button>
 <button onclick="mp();showstack()">axmp</button>
 <button onclick="pushthm('df-bi1');showstack()">dfbi1</button>
