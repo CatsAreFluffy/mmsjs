@@ -1,0 +1,730 @@
+<html>
+<head>
+<!--
+Plans:
+MP fail correctly +
+Undo +
+Negation +
+Axiom clicks +
+UI +
+Record proofs +
+Better varnames in output +
+Store types of connective outputs +
+Sets +
+Equality +
+Fix bug involving renumbering ax10 +
+Containment +
+Save theorems +
+Distinct variable conditions +
+Definitions +
+Set theory +
+Fix distinct variable renumbering +
+Import theorems from axiom string +
+Axiom of Choice +
+Classes +
+More definitions +
+Redo +
+Show proof onscreen +
+Unicode +
+Variable colors +
+Release +
+Make distinct variables actually work (16 gen 9 mp) +
+Fix distinct variables not carrying over with substitutions +
+Export/import with clipboard
+-->
+<script type="text/javascript">
+//wii u debugging
+debugu=true
+//scope=local/global (global vars occur in hypotheses)
+//quant=universal/existential (p vs $1)
+wff={type:"const",op:"->",0:{type:"var",scope:"l",quant:"u",id:0},1:{type:"var",scope:"g",quant:"e",id:0}}
+//connective argument types
+connectives={"->":{in:["wff","wff"],out:"wff"},"~":{in:["wff"],out:"wff"},"<->":{in:["wff","wff"],out:"wff"},"&":{in:["wff","wff"],out:"wff"},"|":{in:["wff","wff"],out:"wff"},"A.":{in:["set","wff"],out:"wff"},"E.":{in:["set","wff"],out:"wff"},"E!":{in:["set","wff"],out:"wff"},"E*":{in:["set","wff"],out:"wff"},"F.":{in:["set","wff"],out:"wff"},"=":{in:["class","class"],out:"wff"},"<":{in:["class","class"],out:"wff"},"set":{in:["set"],out:"set"},"sub":{in:["set","set","wff"],out:"wff"},"ab":{in:["set","wff"],out:"class"},"<=":{in:["class","class"],out:"wff"},"u.":{in:["class","class"],out:"class"},"i.":{in:["class","class"],out:"class"},"(/)":{in:[],out:"class"},"V.":{in:[],out:"class"},"U.":{in:["class"],out:"class"},"I.":{in:["class"],out:"class"},"P.":{in:["class"],out:"class"},"{1}":{in:["class"],out:"class"},"{2}":{in:["class","class"],out:"class"}}
+function termeq(x,y){
+	if(x.type!=y.type){
+		return false
+	}else{
+		if(x.type=="const"){
+			if(x.op!=y.op){
+				return false
+			}else{
+				for(var i=0;i<connectives[x.op].in.length;i++){
+					if(!termeq(x[i],y[i])){
+						return false
+					}
+				}
+				return true
+			}
+		}else{
+			if(x.scope==y.scope&&x.quant==y.quant&&x.sort==y.sort&&x.id==y.id){
+				return true
+			}else{
+				return false
+			}
+		}
+	}
+}
+function occurs(v,exp){
+	if(exp.type=="var"){
+		return (exp.scope==v.scope&&exp.quant==v.quant&&exp.sort==v.sort&&exp.id==v.id)
+	}else{
+		for(var i=0;i<connectives[exp.op].in.length;i++){
+			if(occurs(exp[i],v)){
+				return true
+			}
+		}
+		return false
+	}
+}
+function subst(exp,a,b){
+	if(exp.type=="var"){
+		if(termeq(exp,a)){
+			return b
+		}else{
+			return exp
+		}
+	}else{
+		var texp=Object.assign({},exp)
+		for(var i=0;i<connectives[exp.op].in.length;i++){
+			texp[i]=subst(exp[i],a,b)
+		}
+		return texp
+	}
+}
+function vars(exp){
+	if(exp.type=="var"){
+		return [exp]
+	}else{
+		var t=[]
+		for(var i=0;i<connectives[exp.op].in.length;i++){
+			var o=vars(exp[i])
+			for(var j=0;j<o.length;j++){
+				//if(t.every(a=>!termeq(a,o[j]))){
+				if(t.every(function(a){!termeq(a,o[j])})){
+					t.push(o[j])
+				}
+			}
+		}
+		return t
+	}
+}
+function unify(eq,dv){
+	var eq2=Object.assign([],eq)
+	var out=[]
+	var cont=true
+	while(eq2.length>0){
+		for(var i=0;i<eq2.length;i++){
+			var l=eq2[i][0]
+			var r=eq2[i][1]
+			if(termeq(l,r)){ //delete
+				eq2.splice(i,1)
+				cont=true
+			}else if(l.type=="const"&&r.type=="const"){
+				if(l.op==r.op){ //decompose
+					eq2.splice(i,1)
+					cont=true
+					for(var j=0;j<connectives[l.op].in.length;j++){
+						eq2.push([l[j],r[j]])
+					}
+				}else{ //conflict
+					return false
+				}
+			}else if(l.type=="const"&&r.type=="var"){ //swap
+				eq2[i]=[r,l]
+				cont=true
+			}else if(occurs(l,r)){ //check
+				return false
+			}else{ //eliminate
+				cont=true
+				var temp=eq2.splice(i,1)
+				for(var j=0;j<eq2.length;j++){
+					for(var k=0;k<2;k++){
+						eq2[j][k]=subst(eq2[j][k],l,r)
+					}
+				}
+				for(j=0;j<out.length;j++){
+					for(var k=0;k<2;k++){
+						out[j][k]=subst(out[j][k],l,r)
+					}
+				}
+				out.push(temp[0])
+			}
+		}
+	}
+	var dv2=Object.assign([],dv)
+	for(var i=0;i<out.length;i++){
+		var tvars=vars(out[i][1])
+		var dv3=[]
+		for(var j=0;j<dv2.length;j++){
+			//var ind=dv2[j].findIndex(a=>termeq(a,out[i][0]))
+			var ind=dv2[j].findIndex(function(a){termeq(a,out[i][0])})
+			if(ind>-1){
+				for(var k=0;k<tvars.length;k++){
+					var t=Object.assign([],dv2[j])
+					t[ind]=tvars[k]
+					if(termeq(t[0],t[1])){ //todo: generalize to larger groups
+						return false
+					}
+					dv3.push(t)
+				}
+			}else{
+				dv3.push(dv2[j])
+			}
+		}
+		dv2=dv3
+	}
+	return {eq:out,dv:dv2}
+}
+function renumber(exp,afters,lb,gb){
+	var afters2=Object.assign({},afters);
+	if(exp.type=="var"){
+		if(exp.scope=="l"){
+			var lb2;
+			if(Object.keys(lb).includes([exp.sort,exp.id]+"")){
+				lb2=lb
+			}else{
+				lb2=Object.assign({},lb)
+				if(!afters2[exp.sort]){
+					afters2[exp.sort]=0
+				}
+				lb2[[exp.sort,exp.id]]=afters2[exp.sort]
+				afters2[exp.sort]++
+			}
+			return {exp:{type:"var",scope:"l",quant:exp.quant,sort:exp.sort,id:lb2[[exp.sort,exp.id]]},afters:afters2,lb:lb2,gb:gb}
+		}else{
+			var gb2;
+			if(Object.keys(gb).includes([exp.sort,exp.id]+"")){
+				gb2=gb
+			}else{
+				gb2=Object.assign({},gb)
+				if(!afters2[exp.sort]){
+					afters2[exp.sort]=0
+				}
+				gb2[[exp.sort,exp.id]]=afters2[exp.sort]
+				afters2[exp.sort]++
+			}
+			return {exp:{type:"var",scope:"g",quant:exp.quant,sort:exp.sort,id:gb[[exp.sort,exp.id]]},afters:afters2,lb:lb,gb:gb2}
+		}
+	}else{
+		var exp2=Object.assign({},exp)
+		var lb2=lb
+		var gb2=gb
+		for(var i=0;i<connectives[exp.op].in.length;i++){
+			var t=renumber(exp[i],afters2,lb2,gb2)
+			afters2=t.afters
+			lb2=t.lb
+			gb2=t.gb
+			exp2[i]=t.exp
+		}
+		return {exp:exp2,afters:afters2,lb:lb2,gb:gb2}
+	}
+}
+//converts postfix into formula format
+function parseformula(axl){
+	var tstack=[]
+	for(var i=0;i<axl.length;i++){
+		if(typeof axl[i]=="number"){
+			tstack.push(parsevar(axl[i],"wff"))
+		}else{
+			var texp={type:"const",op:axl[i],sort:"wff"}
+			for(var j=0;j<connectives[axl[i]].in.length;j++){
+				texp[j]=tstack.pop()
+				texp[j].sort=connectives[axl[i]].in[j] //hack to autocast variables
+			}
+			tstack.push(texp)
+		}
+	}
+	return tstack.pop()
+}
+function parsevar(id,sort){
+	return {type:"var",scope:"l",quant:"u",sort:sort,id:id}
+}
+function parsedv(dvl){
+	var t=[]
+	for(var i=0;i<dvl.length;i++){
+		t.push([parsevar(dvl[i][0][1],dvl[i][0][0]),parsevar(dvl[i][1][1],dvl[i][1][0])]) //todo: generalize to larger groups
+	}
+	return t
+}
+function parseaxiom(axl,dvl,name){
+	return {formula:parseformula(axl),proof:{name:name,args:[]},dv:parsedv(dvl)}
+}
+//not recommended
+function pushaxiom(ax,dv,name){
+	stack.push({formula:ax,proof:{name:name,args:[]},dv:dv})
+	pushundo({action:"ax",axiom:ax})
+}
+//should probably be replaced with more general inference application
+function mp(){
+	renumberstack()
+	if(stack.length<2){
+		return
+	}
+	var maj=stack.pop()
+	var min=stack.pop()
+	var uni=unify([[maj.formula,{type:"const",op:"->",sort:"wff",0:min.formula,1:{type:"var",scope:"l",quant:"u",sort:"wff",id:-1}}]],min.dv.concat(maj.dv))
+	if(uni){
+		pushundo({action:"mp",min:min,maj:maj})
+		var dv2=uni.dv
+		var form;
+		for(var i=0;i<uni.eq.length;i++){
+			if(uni.eq[i][0].id==-1){
+				form=uni.eq[i][1]
+			}else if(uni.eq[i][1].id==-1){
+				form=uni.eq[i][0]
+			}
+		}
+		for(var i=0;i<dv2.length;i++){
+			//if(!dv2[i].every(a=>vars(form).some(b=>termeq(a,b)))){
+			if(!dv2[i].every(function(a){vars(form).some(b=>termeq(a,b))})){
+				dv2.splice(i--,1) //todo: generalize to larger groups
+			}
+		}
+		stack.push({formula:form,proof:{name:"ax-mp",args:[min,maj]},dv:dv2})
+	}else{
+		stack.push(min)
+		stack.push(maj)
+	}
+}
+function gen(){
+	renumberstack()
+	if(stack.length<1){
+		return
+	}
+	var hyp=stack.pop()
+	stack.push({formula:{type:"const",op:"A.",sort:"wff",0:{type:"var",scope:"l",quant:"u",sort:"set",id:-1},1:hyp.formula},proof:{name:"ax-gen",args:[hyp]},dv:hyp.dv})
+	pushundo({action:"gen",hyp:hyp})
+}
+function pushundo(x){
+	undostack.push(x)
+	redostack=[]
+}
+function undo(){
+	var undone=undostack.pop()
+	redostack.push(undone)
+	if(undone.action=="mp"){
+		stack.pop()
+		stack.push(undone.min)
+		stack.push(undone.maj)
+	}else if(undone.action=="ax"){
+		stack.pop()
+	}else if(undone.action=="delete"){
+		stack.push(undone.top)
+	}else if(undone.action=="swap"){
+		swaptos()
+		undostack.pop()
+	}else if(undone.action=="gen"){
+		stack.pop()
+		stack.push(undone.hyp)
+	}else if(undone.action=="thm"){
+		stack.pop()
+	}
+}
+function redo(){
+	var redone=redostack.pop()
+	var t=redostack
+	if(redone.action=="mp"){
+		mp()
+	}else if(redone.action=="delete"){
+		deletetos()
+	}else if(redone.action=="swap"){
+		swaptos()
+	}else if(redone.action=="gen"){
+		gen()
+	}else if(redone.action=="thm"){
+		pushthm(redone.name)
+	}
+	redostack=t
+}
+function deletetos(){
+	var t=stack.pop()
+	pushundo({action:"delete",top:t})
+}
+function swaptos(){
+	var t=stack.pop()
+	var s=stack.pop()
+	stack.push(t)
+	stack.push(s)
+	pushundo({action:"swap"})
+}
+displayascii={"->":["(",0,"->",1,")"],"~":["~",0],"<->":["(",0,"<->",1,")"],"&":["(",0,"/\\",1,")"],"|":["(",0,"\\/",1,")"],"A.":["A",0,1],"E.":["E",0,1],"E!":["E!",0,1],"E*":["E*",0,1],"F.":["NF",0,1],"=":[0,"=",1],"<":[0,"&lt;",1],"set":[0],"sub":["[",0,"/",1,"]",2],"ab":["{",0,"|",1,"}"],"<=":[0,"<=",1],"u.":["(",0,"u.",1,")"],"i.":["(",0,"i.",1,")"],"(/)":["(/)"],"V.":["V."],"U.":["U.",0],"I.":["I.",0],"P.":["P.",0],"{1}":["{",0,"}"],"{2}":["{",0,",",1,"}"]}
+displayunicode={"->":["(",0,"&#x2192;",1,")"],"~":["&#xAC;",0],"<->":["(",0,"&#x2194;",1,")"],"&":["(",0,"&#x2227;",1,")"],"|":["(",0,"&#x2228;",1,")"],"A.":["&#x2200;",0,1],"E.":["&#x2203;",0,1],"E!":["&#x2203;!",0,1],"E*":["&#x2203;*",0,1],"F.":["&#x2132;",0,1],"=":[0,"=",1],"<":[0,"&#x2208;",1],"set":[0],"sub":["[",0,"/",1,"]",2],"ab":["{",0,"|",1,"}"],"<=":[0,"&#x2286;",1],"u.":["(",0,"&#x222A;",1,")"],"i.":["(",0,"&#x2229;",1,")"],"(/)":["&#x2298;"],"V.":["V."],"U.":["&#x222A;",0],"I.":["&#x2229;",0],"P.":["&#x1D4AB;",0],"{1}":["{",0,"}"],"{2}":["{",0,",",1,"}"]}
+function print(exp){
+	if(exp.type=="var"){
+		var varnames;
+		if(exp.sort=="wff"){
+			varnames="PQRSTUVWXYZ"
+		}else if(exp.sort=="set"){
+			varnames="xyzwvutsrqp"
+		}else if(exp.sort=="class"){
+			varnames="ABCDEFGHIJK"
+		}else{
+			return exp.sort+exp.id
+		}
+		var left_tag=''
+		var right_tag=''
+		if(settings.var_colors){
+			left_tag='<span class="var_'+exp.sort+'">'
+			right_tag='</span>'
+		}
+		if(exp.id<11){
+			return left_tag+varnames[exp.id]+right_tag
+		}else{
+			return left_tag+varnames[exp.id%11]+(Math.floor(exp.id/11)-1)+right_tag
+		}
+
+	}else{
+		var display;
+		if(settings.unicode){
+			display=displayunicode
+		}else{
+			display=displayascii
+		}
+		var t=""
+		for(var i=0;i<display[exp.op].length;i++){
+			if(typeof display[exp.op][i]=="number"){
+				t+=print(exp[display[exp.op][i]])
+			}else{
+				t+=display[exp.op][i]
+			}
+		}
+		return t
+	}
+}
+function printdv(thm){
+	if(thm.dv.length==0){
+		return print(thm.formula)
+	}
+	var t=print(thm.formula)+" dvs: "
+	for(var i=0;i<thm.dv.length;i++){
+		t+=print(thm.dv[i][0])+","+print(thm.dv[i][1])+" " //todo: generalize to larger groups
+	}
+	return t
+}
+function showproof(proof){
+	var t=""
+	for(var i=0;i<proof.args.length;i++){
+		t+=showproof(proof.args[i].proof)
+		t+=" "
+	}
+	return t+proof.name
+}
+function dvcopy(dv){
+	out=[]
+	for(var i=0;i<dv.length;i++){
+		var t=[]
+		for(var j=0;j<dv[i].length;j++){
+			t.push(deepcopy(dv[i][j]))
+		}
+		out.push(t)
+	}
+	return out
+}
+function deepcopy(x){
+	if(x.proof){
+		return {formula:deepcopy(x.formula),proof:deepcopy(x.proof),dv:dvcopy(x.dv)}
+	}else if(!x){
+		return null
+	}else if(x.type=="var"){
+		return Object.assign({},x)
+	}else if(x.name){
+		var t=Object.assign({},x)
+		for(var i=0;i<t.args.length;i++){
+			t.args[i]=deepcopy(t.args[i])
+		}
+		return t
+	}else{
+		var t=Object.assign({},x)
+		for(var i=0;i<connectives[t.op].in.length;i++){
+			t[i]=deepcopy(t[i])
+		}
+		return t
+	}
+}
+function pushthm(name){
+	stack.push(deepcopy(saved[name]))
+	pushundo({action:"thm",name:name})
+}
+function savethm(){
+	var t=stack[stack.length-1]
+	saved[prompt("Name")]=deepcopy(t)
+}
+function loadthm(){
+	var t=prompt("Name")
+	pushthm(t)
+}
+function importthm(){
+	var t=prompt("Clicks").split(" ")
+	for(var i=0;i<t.length;i++){
+		if(t[i]=="ax-mp"){
+			mp()
+		}else if(t[i]=="ax-gen"){
+			gen()
+		}else{
+			pushthm(t[i])
+		}
+	}
+}
+stack=[]
+undostack=[]
+redostack=[]
+//axioms (except mp and gen)
+saved={
+	'ax-1':parseaxiom([0,1,'->',0,'->'],[],'ax-1'),
+	'ax-2':parseaxiom([2,0,'->',1,0,'->','->',2,1,'->',0,'->','->'],[],'ax-2'),
+	'ax-3':parseaxiom([0,1,'->',1,'~',0,'~','->','->'],[],'ax-3'),
+	'df-bi1':parseaxiom([1,0,'->',1,0,'<->','->'],[],'df-bi1'),
+	'df-bi2':parseaxiom([0,1,'->',1,0,'<->','->'],[],'df-bi2'),
+	'df-bi3':parseaxiom([1,0,'<->',0,1,'->','->',1,0,'->','->'],[],'df-bi3'),
+	'df-or':parseaxiom([1,0,'~','->',1,0,'|','<->'],[],'df-or'),
+	'df-an':parseaxiom([1,'~',0,'->','~',1,0,'&','<->'],[],'df-an'),
+	'ax-4':parseaxiom([0,0,0,'A.','->'],[],'ax-4'),
+	'ax-5':parseaxiom([1,0,'A.',0,0,'A.','->',1,0,'->',0,'A.','->'],[],'ax-5'),
+	'ax-5o':parseaxiom([1,0,'A.',0,0,'A.','->',1,0,0,'A.','->',0,'A.','->'],[],'ax-5o'),
+	'ax-6':parseaxiom([0,0,'A.','~',0,'A.',0,0,'A.','~','->'],[],'ax-6'),
+	'ax-6a':parseaxiom([0,0,'A.','~',0,'A.',0,'~','->'],[],'ax-6a'),
+	'ax-6o':parseaxiom([0,0,0,'A.','~',0,'A.','~','->'],[],'ax-6o'),
+	'ax-7v':parseaxiom([0,1,'A.',0,'A.',0,0,'A.',1,'A.','->'],[[['set',0],['set',1]]],'ax-7'),
+	'ax-7':parseaxiom([0,1,'A.',0,'A.',0,0,'A.',1,'A.','->'],[],'ax-7'),
+	'df-ex':parseaxiom([0,'~',0,'A.','~',0,0,'E.','<->'],[],'df-ex'),
+	'df-eu':parseaxiom([1,'set',0,'set','=',0,'<->',0,'A.',1,'E.',0,0,'E!','<->'],[[['set',0],['set',1]],[['wff',0],['set',1]]],'df-eu'),
+	'df-mo':parseaxiom([0,0,'E!',0,0,'E.','->',0,0,'E*','<->'],[],'df-mo'),
+	'df-nf':parseaxiom([0,0,'A.',0,'->',0,'A.',0,0,'F.','<->'],[],'df-nf'),
+	'ax-8':parseaxiom([2,'set',1,'set','=',2,'set',0,'set','=','->',1,'set',0,'set','=','->'],[],'ax-8'),
+	'ax-9v':parseaxiom([1,'set',0,'set','=','~',0,'A.','~'],[[['set',0],['set',1]]],'ax-9v'),
+	'ax-9':parseaxiom([1,'set',0,'set','=','~',0,'A.','~'],[],'ax-9'),
+	'ax-9o':parseaxiom([0,0,0,'A.',1,'set',0,'set','=','->',0,'A.','->'],[],'ax-9o'),
+	'ax-10':parseaxiom([0,'set',1,'set','=',1,'A.',1,'set',0,'set','=',0,'A.','->'],[],'ax-10'),
+	'ax-10o':parseaxiom([0,1,'A.',0,0,'A.','->',1,'set',0,'set','=',0,'A.','->'],[],'ax-10o'),
+	'ax-11':parseaxiom([0,1,'set',0,'set','=','->',0,'A.',0,1,'A.','->',1,'set',0,'set','=','->'],[],'ax-11'),
+	'ax-11o':parseaxiom([0,1,'set',0,'set','=','->',0,'A.',0,'->',1,'set',0,'set','=','->',1,'set',0,'set','=',0,'A.','~','->'],[],'ax-11o'),
+	'ax-12v':parseaxiom([2,'set',1,'set','=',0,'A.',2,'set',1,'set','=','->',1,'set',0,'set','=','~','->'],[[['set',0],['set',2]],[['set',1],['set',2]]],'ax-12v'),
+	'ax-12':parseaxiom([2,'set',1,'set','=',0,'A.',2,'set',1,'set','=','->',1,'set',0,'set','=','~','->'],[[['set',0],['set',2]],[['set',1],['set',2]]],'ax-12'),
+	'ax-12o':parseaxiom([2,'set',1,'set','=',0,'A.',2,'set',1,'set','=','->',2,'set',0,'set','=',0,'A.','~','->',1,'set',0,'set','=',0,'A.','~','->'],[],'ax-12o'),
+	'ax-13':parseaxiom([2,'set',1,'set','<',2,'set',0,'set','<','->',1,'set',0,'set','=','->'],[],'ax-13'),
+	'ax-14':parseaxiom([1,'set',2,'set','<',0,'set',2,'set','<','->',1,'set',0,'set','=','->'],[],'ax-14'),
+	'ax-15':parseaxiom([2,'set',1,'set','<',0,'A.',2,'set',1,'set','<','->',2,'set',0,'set','=',0,'A.','~','->',1,'set',0,'set','=',0,'A.','~','->'],[],'ax-15'),
+	'ax-16':parseaxiom([0,0,'A.',0,'->',1,'set',0,'set','=',0,'A.','->'],[[['set',0],['set',1]]],'ax-16'),
+	'ax-17':parseaxiom([0,0,'A.',0,'->'],[[['wff',0],['set',0]]],'ax-17'),
+	'df-sb':parseaxiom([0,0,'set',1,'set','=','&',1,'E.',0,0,'set',1,'set','=','->','&',0,1,0,'sub','<->'],[],'df-sb'),
+	'ax-ext':parseaxiom([2,'set',1,'set','=',2,'set',0,'set','<',1,'set',0,'set','<','<->',0,'A.','->'],[[['set',0],['set',1]],[['set',0],['set',2]]],'ax-ext'),
+	'ax-extv':parseaxiom([2,'set',1,'set','=',2,'set',0,'set','<',1,'set',0,'set','<','<->',0,'A.','->'],[[['set',0],['set',1]],[['set',0],['set',2]],[['set',1],['set',2]]],'ax-extv'),
+	'ax-rep':parseaxiom([0,1,'set',0,'set','<','&',0,'E.',0,'set',2,'set','<','<->',2,'A.',1,'set',2,'set','=',0,'->',2,'A.',1,'E.','->',0,'E.'],[[['set',0],['set',1]],[['set',0],['set',2]],[['set',1],['set',2]],[['set',1],['wff',0]]],'ax-rep'),
+	'ax-un':parseaxiom([0,'set',1,'set','<',2,'set',0,'set','<',0,'set',1,'set','<','&',0,'E.','->',1,'A.',0,'E.'],[[['set',0],['set',1]],[['set',0],['set',2]],[['set',1],['set',2]]],'ax-un'),
+	'ax-pow':parseaxiom([0,'set',1,'set','<',2,'set',0,'set','<',1,'set',0,'set','<','->',0,'A.','->',1,'A.',0,'E.'],[[['set',0],['set',1]],[['set',0],['set',2]],[['set',1],['set',2]]],'ax-pow'),
+	'ax-reg':parseaxiom([1,'set',2,'set','<','~',0,'set',2,'set','<','->',2,'A.',1,'set',0,'set','<','&',0,'E.',1,'set',0,'set','<','->'],[[['set',0],['set',1]],[['set',0],['set',2]],[['set',1],['set',2]]],'ax-reg'),
+	'ax-inf':parseaxiom([0,'set',2,'set','<',2,'set',1,'set','<','&',2,'E.',0,'set',1,'set','<','->',1,'A.',0,'set',1,'set','<','&',0,'E.'],[[['set',0],['set',1]],[['set',0],['set',2]],[['set',1],['set',2]],[['set',1],['set',2]]],'ax-inf'),
+	'ax-ac':parseaxiom([3,'set',1,'set','=',0,'set',3,'set','<',3,'set',2,'set','<','&',3,'set',2,'set','<',2,'set',1,'set','<','&','&',3,'E.','<->',1,'A.',3,'E.',3,'set',2,'set','<',2,'set',1,'set','<','&','->',2,'A.',1,'A.',0,'E.'],[[['set',0],['set',1]],[['set',0],['set',1]],[['set',0],['set',2]],[['set',0],['set',3]],[['set',1],['set',2]],[['set',1],['set',3]],[['set',1],['set',3]]],'ax-ac'),
+	'df-clab':parseaxiom([0,1,0,'sub',0,1,'ab',0,'set','<','<->'],[],'df-clab'),
+	'df-cleq':parseaxiom([1,0,'set','<',0,0,'set','<','<->',0,'A.',1,0,'=','<->'],[[['class',0],['set',0]],[['class',1],['set',0]]],'df-cleq'),
+	'df-clel':parseaxiom([1,0,'set','<',0,0,'set','=','&',0,'E.',1,0,'<','<->'],[[['class',0],['set',0]],[['class',1],['set',0]]],'df-clel'),
+	'df-sub':parseaxiom([1,0,'set','<',0,0,'set','<','->',0,'A.',1,0,'<=','<->'],[[['class',0],['set',0]],[['class',1],['set',0]]],'df-sub'),
+	'df-un':parseaxiom([1,0,'set','<',0,0,'set','<','|',0,'ab',1,0,'u.','='],[[['class',0],['set',0]],[['class',1],['set',0]]],'df-un'),
+	'df-in':parseaxiom([1,0,'set','<',0,0,'set','<','&',0,'ab',1,0,'i.','='],[[['class',0],['set',0]],[['class',1],['set',0]]],'df-in'),
+	'df-nul':parseaxiom([0,'set',0,'set','=','~',0,'ab','(/)','='],[],'df-nul'),
+	'df-v':parseaxiom([0,'set',0,'set','=',0,'ab','V.','='],[],'df-v'),
+	'df-uni':parseaxiom([1,1,'set','<',1,'set',0,'set','<','&',1,'E.',0,'ab',0,'U.','='],[[['class',0],['set',0]],[['class',0],['set',1]]],'df-uni'),
+	'df-int':parseaxiom([1,'set',0,'set','<',1,1,'set','<','->',1,'A.',0,'ab',0,'I.','='],[[['class',0],['set',0]],[['class',0],['set',1]]],'df-int'),
+	'df-pw':parseaxiom([0,0,'set','<=',0,'ab',0,'P.','='],[[['class',0],['set',0]]],'df-pw'),
+	'df-sn':parseaxiom([0,0,'set','=',0,'ab',0,'{1}','='],[[['class',0],['set',0]]],'df-sn'),
+	'df-pr':parseaxiom([1,'{1}',0,'{1}','u.',1,0,'{2}','='],[],'df-pr')
+}
+function dvreplace(dv,rep){
+	if(dv.length){
+		var t=[]
+		for(var i=0;i<dv.length;i++){
+			t.push(dvreplace(dv[i],rep))
+		}
+		return t
+	}else{
+		if(typeof rep[[dv.sort,dv.id]]=="number"){
+			return Object.assign(Object.assign({},dv),{id:rep[[dv.sort,dv.id]]})
+		}else{
+			return dv
+		}
+	}
+}
+function renumberstack(){
+	var afters=0;
+	var gb={};
+	if(settings.reverse){
+		for(var i=stack.length-1;i>=0;i--){
+			var t=renumber(stack[i].formula,afters,{},gb)
+			stack[i].formula=t.exp
+			afters=t.afters
+			gb=t.gb
+			stack[i].dv=dvreplace(stack[i].dv,t.lb)
+		}	
+	}else{
+		for(var i=0;i<stack.length;i++){
+			var t=renumber(stack[i].formula,afters,{},gb)
+			stack[i].formula=t.exp
+			afters=t.afters
+			gb=t.gb
+			stack[i].dv=dvreplace(stack[i].dv,t.lb)
+		}	
+	}
+}
+function renderstack(sep){
+	renumberstack()
+	if(settings.reverse){
+		stack.reverse()
+	}
+	//var ret=stack.map(a=>printdv(a)).join(sep)
+	var ret=stack.map(printdv).join(sep)
+	if(settings.reverse){
+		stack.reverse()
+	}
+	return ret
+}
+function showstack(){
+	stackbox.innerHTML=renderstack("<br>")
+}
+function pushclick(n){
+	try{
+		pushthm(n)
+		showstack()
+	}catch(e){
+		alert(e)
+	}
+}
+settings={unicode:true,var_colors:true,reverse:true}
+function animation(fwd){
+	if(fwd){
+		if(redostack.length){
+			redo()
+			showstack()
+			setTimeout(animation,100,fwd)
+		}
+	}else{
+		if(undostack.length){
+			undo()
+			showstack()
+			setTimeout(animation,100,fwd)
+		}
+	}
+}
+//test script for b1/2 features, might not work anymore
+function test(){
+	//test wff 1 is (P->R) test wff 2 is (P->Q)
+	console.log(unify([[
+		{type:"const",op:"->",sort:"wff",0:{type:"var",scope:"l",quant:"u",sort:"wff",id:0},1:{type:"var",scope:"l",quant:"u",sort:"wff",id:2}},
+		{type:"const",op:"->",sort:"wff",0:{type:"var",scope:"l",quant:"u",sort:"wff",id:0},1:{type:"var",scope:"l",quant:"u",sort:"wff",id:1}}]]))
+	console.log(renumber(
+		{type:"const",op:"->",sort:"wff",0:{type:"var",scope:"l",quant:"u",sort:"wff",id:0},1:{type:"var",scope:"l",quant:"u",sort:"wff",id:2}}
+		,0,{},{}))
+	console.log(print(
+		{type:"const",op:"->",sort:"wff",0:{type:"var",scope:"l",quant:"u",sort:"wff",id:0},1:{type:"var",scope:"l",quant:"u",sort:"wff",id:2}}
+		,0,{},{}))
+	stack.push(
+		{type:"const",op:"->",sort:"wff",0:{type:"var",scope:"l",quant:"u",sort:"wff",id:0},1:{type:"var",scope:"l",quant:"u",sort:"wff",id:2}}
+		)
+	stack.push(
+		{type:"const",op:"->",sort:"wff",0:{type:"var",scope:"l",quant:"u",sort:"wff",id:2},1:{type:"const",op:"->",sort:"wff",0:{type:"var",scope:"l",quant:"u",sort:"wff",id:0},1:{type:"var",scope:"l",quant:"u",sort:"wff",id:2}}}
+		)
+	console.log(renderstack())
+	mp()
+	console.log(renderstack())
+}
+if(debugu){
+	alert("Initialized")
+}
+</script>
+<style>
+.var_wff {
+	color:blue;
+}
+.var_set {
+	color:red;
+}
+.var_class {
+	color:purple;
+}
+</style>
+</head>
+<body>
+Metamath Solitaire JS (build 7.2.1, June 11)
+<br>
+<button onclick="pushclick('ax-1')">ax1</button>
+<button onclick="pushclick('ax-2')">ax2</button>
+<button onclick="pushthm('ax-3');showstack()">ax3</button>
+<button onclick="mp();showstack()">axmp</button>
+<button onclick="pushthm('df-bi1');showstack()">dfbi1</button>
+<button onclick="pushthm('df-bi2');showstack()">dfbi2</button>
+<button onclick="pushthm('df-bi3');showstack()">dfbi3</button>
+<button onclick="pushthm('df-or');showstack()">dfor</button>
+<button onclick="pushthm('df-an');showstack()">dfan</button>
+<br>
+<button onclick="pushthm('ax-4');showstack()">ax4</button>
+<button onclick="pushthm('ax-5');showstack()">ax5</button>
+<button onclick="pushthm('ax-5o');showstack()">ax5o</button>
+<button onclick="pushthm('ax-6');showstack()">ax6</button>
+<button onclick="pushthm('ax-7');showstack()">ax7</button>
+<button onclick="gen();showstack()">axgen</button>
+<button onclick="pushthm('df-ex');showstack()">dfex</button>
+<button onclick="pushthm('df-eu');showstack()">dfeu</button>
+<button onclick="pushthm('df-mo');showstack()">dfmo</button>
+<button onclick="pushthm('df-nf');showstack()">dfnf</button>
+<br>
+<button onclick="pushthm('ax-8');showstack()">ax8</button>
+<button onclick="pushthm('ax-9o');showstack()">ax9o</button>
+<button onclick="pushthm('ax-10o');showstack()">ax10o</button>
+<button onclick="pushthm('ax-11o');showstack()">ax11o</button>
+<button onclick="pushthm('ax-12o');showstack()">ax12o</button>
+<button onclick="pushthm('ax-13');showstack()">ax13</button>
+<button onclick="pushthm('ax-14');showstack()">ax14</button>
+<button onclick="pushthm('ax-16');showstack()">ax16</button>
+<button onclick="pushthm('ax-17');showstack()">ax17</button>
+<button onclick="pushthm('df-sb');showstack()">dfsb</button>
+<br>
+<button onclick="pushthm('ax-6a');showstack()">ax6a</button>
+<button onclick="pushthm('ax-6o');showstack()">ax6o</button>
+<button onclick="pushthm('ax-9v');showstack()">ax9v</button>
+<button onclick="pushthm('ax-9');showstack()">ax9</button>
+<button onclick="pushthm('ax-10');showstack()">ax10</button>
+<button onclick="pushthm('ax-11');showstack()">ax11</button>
+<button onclick="pushthm('ax-12v');showstack()">ax12v</button>
+<button onclick="pushthm('ax-12');showstack()">ax12</button>
+<button onclick="pushthm('ax-15');showstack()">ax15</button>
+<button onclick="pushthm('ax-extv');showstack()">axextv</button>
+<br>
+<button onclick="pushthm('ax-ext');showstack()">axext</button>
+<button onclick="pushthm('ax-rep');showstack()">axrep</button>
+<button onclick="pushthm('ax-un');showstack()">axun</button>
+<button onclick="pushthm('ax-pow');showstack()">axpow</button>
+<button onclick="pushthm('ax-reg');showstack()">axreg</button>
+<button onclick="pushthm('ax-inf');showstack()">axinf</button>
+<button onclick="pushthm('ax-ac');showstack()">axac</button>
+<br>
+<button onclick="pushthm('df-clab');showstack()">dfclab</button>
+<button onclick="pushthm('df-cleq');showstack()">dfcleq</button>
+<button onclick="pushthm('df-clel');showstack()">dfclel</button>
+<button onclick="pushthm('df-sub');showstack()">dfsub</button>
+<button onclick="pushthm('df-un');showstack()">dfun</button>
+<button onclick="pushthm('df-in');showstack()">dfin</button>
+<button onclick="pushthm('df-nul');showstack()">dfnul</button>
+<button onclick="pushthm('df-v');showstack()">dfv</button>
+<button onclick="pushthm('df-uni');showstack()">dfuni</button>
+<button onclick="pushthm('df-int');showstack()">dfint</button>
+<button onclick="pushthm('df-pw');showstack()">dfpw</button>
+<button onclick="pushthm('df-sn');showstack()">dfsn</button>
+<button onclick="pushthm('df-pr');showstack()">dfpr</button>
+<br>
+<button onclick="undo();showstack()">undo</button>
+<button onclick="redo();showstack()">redo</button>
+<button onclick="animation(redostack.length)">animation</button>
+<button onclick="deletetos();showstack()">delete top</button>
+<button onclick="swaptos();showstack()">swap top</button>
+<button onclick="savethm()">save top</button>
+<button onclick="loadthm();showstack()">load</button>
+<button onclick="console.log(showproof(stack[stack.length-1].proof));alert(showproof(stack[stack.length-1].proof))">export top</button>
+<button onclick="importthm();showstack()">import</button>
+<br>
+<button onclick="settings.unicode^=1;showstack()">toggle unicode</button>
+<button onclick="settings.var_colors^=1;showstack()">toggle varcolors</button>
+<button onclick="settings.reverse^=1;showstack()">toggle reverse stack</button>
+<button onclick="settings.debugu^=1;alert('toggled')"">toggle wii u test</button>
+<div id="stackbox"></div>
+<a href="http://us.metamath.org/mpeuni/mmset.html">Metamath</a>
+</body>
+</html>
