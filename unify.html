@@ -28,13 +28,16 @@ Show proof onscreen +
 Unicode +
 Variable colors +
 Release +
+Make distinct variables actually work (16 gen 9 mp) +
+Fix distinct variables not carrying over with substitutions +
+Export/import with clipboard
 -->
 <script type="text/javascript">
-//scope=local/global
-//quant=universal/existential
+//scope=local/global (global vars occur in hypotheses)
+//quant=universal/existential (p vs $1)
 wff={type:"const",op:"->",0:{type:"var",scope:"l",quant:"u",id:0},1:{type:"var",scope:"g",quant:"e",id:0}}
 //connective argument types
-connectives={"->":{in:["wff","wff"],out:"wff"},"~":{in:["wff"],out:"wff"},"<->":{in:["wff","wff"],out:"wff"},"&":{in:["wff","wff"],out:"wff"},"|":{in:["wff","wff"],out:"wff"},"A.":{in:["set","wff"],out:"wff"},"E.":{in:["set","wff"],out:"wff"},"F.":{in:["set","wff"],out:"wff"},"=":{in:["class","class"],out:"wff"},"<":{in:["class","class"],out:"wff"},"set":{in:["set"],out:"set"},"sub":{in:["set","set","wff"],out:"wff"},"ab":{in:["set","wff"],out:"class"},"<=":{in:["class","class"],out:"wff"},"u.":{in:["class","class"],out:"class"},"i.":{in:["class","class"],out:"class"},"(/)":{in:[],out:"class"},"V.":{in:[],out:"class"},"U.":{in:["class"],out:"class"},"I.":{in:["class"],out:"class"},"P.":{in:["class"],out:"class"}}
+connectives={"->":{in:["wff","wff"],out:"wff"},"~":{in:["wff"],out:"wff"},"<->":{in:["wff","wff"],out:"wff"},"&":{in:["wff","wff"],out:"wff"},"|":{in:["wff","wff"],out:"wff"},"A.":{in:["set","wff"],out:"wff"},"E.":{in:["set","wff"],out:"wff"},"F.":{in:["set","wff"],out:"wff"},"=":{in:["class","class"],out:"wff"},"<":{in:["class","class"],out:"wff"},"set":{in:["set"],out:"set"},"sub":{in:["set","set","wff"],out:"wff"},"ab":{in:["set","wff"],out:"class"},"<=":{in:["class","class"],out:"wff"},"u.":{in:["class","class"],out:"class"},"i.":{in:["class","class"],out:"class"},"(/)":{in:[],out:"class"},"V.":{in:[],out:"class"},"U.":{in:["class"],out:"class"},"I.":{in:["class"],out:"class"},"P.":{in:["class"],out:"class"},"{1}":{in:["class"],out:"class"},"{2}":{in:["class","class"],out:"class"}}
 function termeq(x,y){
 	if(x.type!=y.type){
 		return false
@@ -150,10 +153,10 @@ function unify(eq,dv){
 		var tvars=vars(out[i][1])
 		var dv3=[]
 		for(var j=0;j<dv2.length;j++){
-			var ind=dv2[j].find(a=>termeq(a,out[i][0]))
+			var ind=dv2[j].findIndex(a=>termeq(a,out[i][0]))
 			if(ind>-1){
 				for(var k=0;k<tvars.length;k++){
-					var t=Object.assign({},dv2[j])
+					var t=Object.assign([],dv2[j])
 					t[ind]=tvars[k]
 					if(termeq(t[0],t[1])){ //todo: generalize to larger groups
 						return false
@@ -339,8 +342,8 @@ function swaptos(){
 	stack.push(s)
 	pushundo({action:"swap"})
 }
-displayascii={"->":["(",0,"->",1,")"],"~":["~",0],"<->":["(",0,"<->",1,")"],"&":["(",0,"/\\",1,")"],"|":["(",0,"\\/",1,")"],"A.":["A",0,1],"E.":["E",0,1],"F.":["NF",0,1],"=":[0,"=",1],"<":[0,"&lt;",1],"set":[0],"sub":["[",0,"/",1,"]",2],"ab":["{",0,"|",1,"}"],"<=":[0,"<=",1],"u.":["(",0,"u.",1,")"],"i.":["(",0,"i.",1,")"],"(/)":["(/)"],"V.":["V."],"U.":["U.",0],"I.":["I.",0],"P.":["P.",0]}
-displayunicode={"->":["(",0,"&#x2192;",1,")"],"~":["&#xAC;",0],"<->":["(",0,"&#x2194;",1,")"],"&":["(",0,"&#x2227;",1,")"],"|":["(",0,"&#x2228;",1,")"],"A.":["&#x2200;",0,1],"E.":["&#x2203;",0,1],"F.":["&#x2132;",0,1],"=":[0,"=",1],"<":[0,"&#x2208;",1],"set":[0],"sub":["[",0,"/",1,"]",2],"ab":["{",0,"|",1,"}"],"<=":[0,"&#x2286;",1],"u.":["(",0,"&#x222A;",1,")"],"i.":["(",0,"&#x2229;",1,")"],"(/)":["&#x2298;"],"V.":["V."],"U.":["&#x222A;",0],"I.":["&#x2229;",0],"P.":["&#x1D4AB;",0]}
+displayascii={"->":["(",0,"->",1,")"],"~":["~",0],"<->":["(",0,"<->",1,")"],"&":["(",0,"/\\",1,")"],"|":["(",0,"\\/",1,")"],"A.":["A",0,1],"E.":["E",0,1],"F.":["NF",0,1],"=":[0,"=",1],"<":[0,"&lt;",1],"set":[0],"sub":["[",0,"/",1,"]",2],"ab":["{",0,"|",1,"}"],"<=":[0,"<=",1],"u.":["(",0,"u.",1,")"],"i.":["(",0,"i.",1,")"],"(/)":["(/)"],"V.":["V."],"U.":["U.",0],"I.":["I.",0],"P.":["P.",0],"{1}":["{",0,"}"],"{2}":["{",0,",",1,"}"]}
+displayunicode={"->":["(",0,"&#x2192;",1,")"],"~":["&#xAC;",0],"<->":["(",0,"&#x2194;",1,")"],"&":["(",0,"&#x2227;",1,")"],"|":["(",0,"&#x2228;",1,")"],"A.":["&#x2200;",0,1],"E.":["&#x2203;",0,1],"F.":["&#x2132;",0,1],"=":[0,"=",1],"<":[0,"&#x2208;",1],"set":[0],"sub":["[",0,"/",1,"]",2],"ab":["{",0,"|",1,"}"],"<=":[0,"&#x2286;",1],"u.":["(",0,"&#x222A;",1,")"],"i.":["(",0,"&#x2229;",1,")"],"(/)":["&#x2298;"],"V.":["V."],"U.":["&#x222A;",0],"I.":["&#x2229;",0],"P.":["&#x1D4AB;",0],"{1}":["{",0,"}"],"{2}":["{",0,",",1,"}"]}
 function print(exp){
 	if(exp.type=="var"){
 		var varnames;
@@ -483,7 +486,7 @@ saved={
 	'ax-12':parseaxiom([2,'set',1,'set','=',0,'A.',2,'set',1,'set','=','->',2,'set',0,'set','=',0,'A.','~','->',1,'set',0,'set','=',0,'A.','~','->'],[],'ax-12'),
 	'ax-13':parseaxiom([2,'set',1,'set','<',2,'set',0,'set','<','->',1,'set',0,'set','=','->'],[],'ax-13'),
 	'ax-14':parseaxiom([1,'set',2,'set','<',0,'set',2,'set','<','->',1,'set',0,'set','=','->'],[],'ax-14'),
-	'ax-15':parseaxiom([2,'set',1,'set','<',2,'set',0,'set','<','->',1,'set',0,'set','=','->'],[[['set',0],['set',1]]],'ax-15'),
+	'ax-15':parseaxiom([0,0,'A.',0,'->',1,'set',0,'set','=',0,'A.','->'],[[['set',0],['set',1]]],'ax-15'),
 	'ax-16':parseaxiom([0,0,'A.',0,'->'],[[['wff',0],['set',0]]],'ax-16'),
 	'df-sb':parseaxiom([0,0,'set',1,'set','=','&',1,'E.',0,0,'set',1,'set','=','->','&',0,1,0,'sub','<->'],[],'df-sb'),
 	'ax-ext':parseaxiom([2,'set',1,'set','=',2,'set',0,'set','<',1,'set',0,'set','<','<->',0,'A.','->'],[[['set',0],['set',1]],[['set',0],['set',2]]],'ax-ext'),
@@ -503,7 +506,9 @@ saved={
 	'df-v':parseaxiom([0,'set',0,'set','=',0,'ab','V.','='],[],'df-v'),
 	'df-uni':parseaxiom([1,1,'set','<',1,'set',0,'set','<','&',1,'E.',0,'ab',0,'U.','='],[[['class',0],['set',0]],[['class',0],['set',1]]],'df-uni'),
 	'df-int':parseaxiom([1,'set',0,'set','<',1,1,'set','<','->',1,'A.',0,'ab',0,'I.','='],[[['class',0],['set',0]],[['class',0],['set',1]]],'df-int'),
-	'df-pw':parseaxiom([0,0,'set','<=',0,'ab',0,'P.','='],[[['class',0],['set',0]]],'df-int')
+	'df-pw':parseaxiom([0,0,'set','<=',0,'ab',0,'P.','='],[[['class',0],['set',0]]],'df-pw'),
+	'df-sn':parseaxiom([0,0,'set','=',0,'ab',0,'{1}','='],[[['class',0],['set',0]]],'df-sn'),
+	'df-pr':parseaxiom([1,'{1}',0,'{1}','u.',1,0,'{2}','='],[],'df-pr')
 }
 function dvreplace(dv,rep){
 	if(dv.length){
@@ -607,7 +612,7 @@ function test(){
 </style>
 </head>
 <body>
-Metamath Solitaire JS (build 5.2, May 31)
+Metamath Solitaire JS (build 6, June 6)
 <br>
 <button onclick="pushthm('ax-1');showstack()">ax1</button>
 <button onclick="pushthm('ax-2');showstack()">ax2</button>
@@ -657,6 +662,8 @@ Metamath Solitaire JS (build 5.2, May 31)
 <button onclick="pushthm('df-uni');showstack()">dfuni</button>
 <button onclick="pushthm('df-int');showstack()">dfint</button>
 <button onclick="pushthm('df-pw');showstack()">dfpw</button>
+<button onclick="pushthm('df-sn');showstack()">dfsn</button>
+<button onclick="pushthm('df-pr');showstack()">dfpr</button>
 <br>
 <button onclick="undo();showstack()">undo</button>
 <button onclick="redo();showstack()">redo</button>
