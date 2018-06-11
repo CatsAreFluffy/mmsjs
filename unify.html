@@ -474,20 +474,30 @@ saved={
 	'df-or':parseaxiom([1,0,'~','->',1,0,'|','<->'],[],'df-or'),
 	'df-an':parseaxiom([1,'~',0,'->','~',1,0,'&','<->'],[],'df-an'),
 	'ax-4':parseaxiom([0,0,0,'A.','->'],[],'ax-4'),
-	'ax-5':parseaxiom([1,0,'A.',0,0,'A.','->',1,0,0,'A.','->',0,'A.','->'],[],'ax-5'),
+	'ax-5':parseaxiom([1,0,'A.',0,0,'A.','->',1,0,'->',0,'A.','->'],[],'ax-5'),
+	'ax-5o':parseaxiom([1,0,'A.',0,0,'A.','->',1,0,0,'A.','->',0,'A.','->'],[],'ax-5o'),
 	'ax-6':parseaxiom([0,0,'A.','~',0,'A.',0,0,'A.','~','->'],[],'ax-6'),
+	'ax-6o':parseaxiom([0,0,0,'A.','~',0,'A.','~','->'],[],'ax-6o'),
+	'ax-7v':parseaxiom([0,1,'A.',0,'A.',0,0,'A.',1,'A.','->'],[[['set',0],['set',1]]],'ax-7'),
 	'ax-7':parseaxiom([0,1,'A.',0,'A.',0,0,'A.',1,'A.','->'],[],'ax-7'),
 	'df-ex':parseaxiom([0,'~',0,'A.','~',0,0,'E.','<->'],[],'df-ex'),
 	'df-nf':parseaxiom([0,0,'A.',0,'->',0,'A.',0,0,'F.','<->'],[],'df-nf'),
 	'ax-8':parseaxiom([2,'set',1,'set','=',2,'set',0,'set','=','->',1,'set',0,'set','=','->'],[],'ax-8'),
-	'ax-9':parseaxiom([0,0,0,'A.',1,'set',0,'set','=','->',0,'A.','->'],[],'ax-9'),
-	'ax-10':parseaxiom([0,1,'A.',0,0,'A.','->',1,'set',0,'set','=',0,'A.','->'],[],'ax-10'),
-	'ax-11':parseaxiom([0,1,'set',0,'set','=','->',0,'A.',0,'->',1,'set',0,'set','=','->',1,'set',0,'set','=',0,'A.','~','->'],[],'ax-11'),
-	'ax-12':parseaxiom([2,'set',1,'set','=',0,'A.',2,'set',1,'set','=','->',2,'set',0,'set','=',0,'A.','~','->',1,'set',0,'set','=',0,'A.','~','->'],[],'ax-12'),
+	'ax-9v':parseaxiom([1,'set',0,'set','=','~',0,'A.','~'],[[['set',0],['set',1]]],'ax-9v'),
+	'ax-9':parseaxiom([1,'set',0,'set','=','~',0,'A.','~'],[],'ax-9'),
+	'ax-9o':parseaxiom([0,0,0,'A.',1,'set',0,'set','=','->',0,'A.','->'],[],'ax-9o'),
+	'ax-10':parseaxiom([0,'set',1,'set','=',1,'A.',1,'set',0,'set','=',0,'A.','->'],[],'ax-10'),
+	'ax-10o':parseaxiom([0,1,'A.',0,0,'A.','->',1,'set',0,'set','=',0,'A.','->'],[],'ax-10o'),
+	'ax-11':parseaxiom([0,1,'set',0,'set','=','->',0,'A.',0,1,'A.','->',1,'set',0,'set','=','->'],[],'ax-11'),
+	'ax-11o':parseaxiom([0,1,'set',0,'set','=','->',0,'A.',0,'->',1,'set',0,'set','=','->',1,'set',0,'set','=',0,'A.','~','->'],[],'ax-11o'),
+	'ax-12v':parseaxiom([2,'set',1,'set','=',0,'A.',2,'set',1,'set','=','->',1,'set',0,'set','=','~','->'],[[['set',0],['set',2]],[['set',1],['set',2]]],'ax-12v'),
+	'ax-12':parseaxiom([2,'set',1,'set','=',0,'A.',2,'set',1,'set','=','->',1,'set',0,'set','=','~','->'],[[['set',0],['set',2]],[['set',1],['set',2]]],'ax-12'),
+	'ax-12o':parseaxiom([2,'set',1,'set','=',0,'A.',2,'set',1,'set','=','->',2,'set',0,'set','=',0,'A.','~','->',1,'set',0,'set','=',0,'A.','~','->'],[],'ax-12o'),
 	'ax-13':parseaxiom([2,'set',1,'set','<',2,'set',0,'set','<','->',1,'set',0,'set','=','->'],[],'ax-13'),
 	'ax-14':parseaxiom([1,'set',2,'set','<',0,'set',2,'set','<','->',1,'set',0,'set','=','->'],[],'ax-14'),
-	'ax-15':parseaxiom([0,0,'A.',0,'->',1,'set',0,'set','=',0,'A.','->'],[[['set',0],['set',1]]],'ax-15'),
-	'ax-16':parseaxiom([0,0,'A.',0,'->'],[[['wff',0],['set',0]]],'ax-16'),
+	'ax-15':parseaxiom([2,'set',1,'set','<',0,'A.',2,'set',1,'set','<','->',2,'set',0,'set','=',0,'A.','~','->',1,'set',0,'set','=',0,'A.','~','->'],[],'ax-15'),
+	'ax-16':parseaxiom([0,0,'A.',0,'->',1,'set',0,'set','=',0,'A.','->'],[[['set',0],['set',1]]],'ax-16'),
+	'ax-17':parseaxiom([0,0,'A.',0,'->'],[[['wff',0],['set',0]]],'ax-17'),
 	'df-sb':parseaxiom([0,0,'set',1,'set','=','&',1,'E.',0,0,'set',1,'set','=','->','&',0,1,0,'sub','<->'],[],'df-sb'),
 	'ax-ext':parseaxiom([2,'set',1,'set','=',2,'set',0,'set','<',1,'set',0,'set','<','<->',0,'A.','->'],[[['set',0],['set',1]],[['set',0],['set',2]]],'ax-ext'),
 	'ax-rep':parseaxiom([0,1,'set',0,'set','<','&',0,'E.',0,'set',2,'set','<','<->',2,'A.',1,'set',2,'set','=',0,'->',2,'A.',1,'E.','->',0,'E.'],[[['set',0],['set',1]],[['set',0],['set',2]],[['set',1],['set',2]],[['set',1],['wff',0]]],'ax-rep'),
@@ -612,7 +622,7 @@ function test(){
 </style>
 </head>
 <body>
-Metamath Solitaire JS (build 6.1, June 6)
+Metamath Solitaire JS (build 7, June 10/11)
 <br>
 <button onclick="pushthm('ax-1');showstack()">ax1</button>
 <button onclick="pushthm('ax-2');showstack()">ax2</button>
@@ -626,6 +636,7 @@ Metamath Solitaire JS (build 6.1, June 6)
 <br>
 <button onclick="pushthm('ax-4');showstack()">ax4</button>
 <button onclick="pushthm('ax-5');showstack()">ax5</button>
+<button onclick="pushthm('ax-5o');showstack()">ax5o</button>
 <button onclick="pushthm('ax-6');showstack()">ax6</button>
 <button onclick="pushthm('ax-7');showstack()">ax7</button>
 <button onclick="gen();showstack()">axgen</button>
@@ -633,15 +644,24 @@ Metamath Solitaire JS (build 6.1, June 6)
 <button onclick="pushthm('df-nf');showstack()">dfnf</button>
 <br>
 <button onclick="pushthm('ax-8');showstack()">ax8</button>
+<button onclick="pushthm('ax-9o');showstack()">ax9o</button>
+<button onclick="pushthm('ax-10o');showstack()">ax10o</button>
+<button onclick="pushthm('ax-11o');showstack()">ax11o</button>
+<button onclick="pushthm('ax-12o');showstack()">ax12o</button>
+<button onclick="pushthm('ax-13');showstack()">ax13</button>
+<button onclick="pushthm('ax-14');showstack()">ax14</button>
+<button onclick="pushthm('ax-16');showstack()">ax16</button>
+<button onclick="pushthm('ax-17');showstack()">ax17</button>
+<button onclick="pushthm('df-sb');showstack()">dfsub</button>
+<br>
+<button onclick="pushthm('ax-6o');showstack()">ax6o</button>
+<button onclick="pushthm('ax-9v');showstack()">ax9v</button>
 <button onclick="pushthm('ax-9');showstack()">ax9</button>
 <button onclick="pushthm('ax-10');showstack()">ax10</button>
 <button onclick="pushthm('ax-11');showstack()">ax11</button>
+<button onclick="pushthm('ax-12v');showstack()">ax12v</button>
 <button onclick="pushthm('ax-12');showstack()">ax12</button>
-<button onclick="pushthm('ax-13');showstack()">ax13</button>
-<button onclick="pushthm('ax-14');showstack()">ax14</button>
 <button onclick="pushthm('ax-15');showstack()">ax15</button>
-<button onclick="pushthm('ax-16');showstack()">ax16</button>
-<button onclick="pushthm('df-sb');showstack()">dfsub</button>
 <br>
 <button onclick="pushthm('ax-ext');showstack()">axext</button>
 <button onclick="pushthm('ax-rep');showstack()">axrep</button>
