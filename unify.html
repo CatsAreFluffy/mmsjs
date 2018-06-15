@@ -30,10 +30,10 @@ Variable colors +
 Release +
 Make distinct variables actually work (16 gen 9 mp) +
 Fix distinct variables not carrying over with substitutions +
-Fix distinct variable condition duplication ?
+Fix distinct variable condition duplication +
 Compressed proof formats
 Export/import with clipboard
-Fix ax-17 ax-17 syl (broken between b7 and b7.3)
+Fix ax-17 ax-17 syl (broken between b7 and b7.3) +
 -->
 <script type="text/javascript">
 //wii u debugging
@@ -51,7 +51,7 @@ if(debugu){
 //quant=universal/existential (p vs $1)
 wff={type:"const",op:"->",0:{type:"var",scope:"l",quant:"u",id:0},1:{type:"var",scope:"g",quant:"e",id:0}}
 //connective argument types
-connectives={"->":{in:["wff","wff"],out:"wff"},"~":{in:["wff"],out:"wff"},"<->":{in:["wff","wff"],out:"wff"},"&":{in:["wff","wff"],out:"wff"},"|":{in:["wff","wff"],out:"wff"},"A.":{in:["set","wff"],out:"wff"},"E.":{in:["set","wff"],out:"wff"},"E!":{in:["set","wff"],out:"wff"},"E*":{in:["set","wff"],out:"wff"},"F.":{in:["set","wff"],out:"wff"},"=":{in:["class","class"],out:"wff"},"<":{in:["class","class"],out:"wff"},"set":{in:["set"],out:"set"},"sub":{in:["set","set","wff"],out:"wff"},"ab":{in:["set","wff"],out:"class"},"<=":{in:["class","class"],out:"wff"},"u.":{in:["class","class"],out:"class"},"i.":{in:["class","class"],out:"class"},"(/)":{in:[],out:"class"},"V.":{in:[],out:"class"},"U.":{in:["class"],out:"class"},"I.":{in:["class"],out:"class"},"P.":{in:["class"],out:"class"},"{1}":{in:["class"],out:"class"},"{2}":{in:["class","class"],out:"class"}}
+connectives={"->":{in:["wff","wff"],out:"wff"},"~":{in:["wff"],out:"wff"},"<->":{in:["wff","wff"],out:"wff"},"&":{in:["wff","wff"],out:"wff"},"|":{in:["wff","wff"],out:"wff"},"A.":{in:["set","wff"],out:"wff"},"E.":{in:["set","wff"],out:"wff"},"E!":{in:["set","wff"],out:"wff"},"E*":{in:["set","wff"],out:"wff"},"F.":{in:["set","wff"],out:"wff"},"=":{in:["class","class"],out:"wff"},"<":{in:["class","class"],out:"wff"},"set":{in:["set"],out:"set"},"sub":{in:["set","set","wff"],out:"wff"},"ab":{in:["set","wff"],out:"class"},"<=":{in:["class","class"],out:"wff"},"u.":{in:["class","class"],out:"class"},"i.":{in:["class","class"],out:"class"},"(/)":{in:[],out:"class"},"V.":{in:[],out:"class"},"U.":{in:["class"],out:"class"},"I.":{in:["class"],out:"class"},"P.":{in:["class"],out:"class"},"{1}":{in:["class"],out:"class"},"{2}":{in:["class","class"],out:"class"},"S":{in:["class"],out:"class"}}
 function termeq(x,y){
 	if(x.type!=y.type){
 		return false
@@ -268,7 +268,7 @@ function parsedv(dvl){
 	return t
 }
 function parseaxiom(axl,dvl,name){
-	return {formula:parseformula(axl),proof:{name:name,args:[]},dv:parsedv(dvl)}
+	return {formula:parseformula(axl),proof:{name:name,args:[]},dv:parsedv(dvl),compound:0}
 }
 //not recommended
 function pushaxiom(ax,dv,name){
@@ -301,7 +301,7 @@ function mp(){
 				dv2.splice(i--,1) //todo: generalize to larger groups
 			}
 		}
-		stack.push({formula:form,proof:{name:"ax-mp",args:[min,maj]},dv:dv2})
+		stack.push({formula:form,proof:{name:"ax-mp",args:[min,maj]},dv:dv2,compound:2})
 	}else{
 		stack.push(min)
 		stack.push(maj)
@@ -313,7 +313,7 @@ function gen(){
 		return
 	}
 	var hyp=stack.pop()
-	stack.push({formula:{type:"const",op:"A.",sort:"wff",0:{type:"var",scope:"l",quant:"u",sort:"set",id:-1},1:hyp.formula},proof:{name:"ax-gen",args:[hyp]},dv:hyp.dv})
+	stack.push({formula:{type:"const",op:"A.",sort:"wff",0:{type:"var",scope:"l",quant:"u",sort:"set",id:-1},1:hyp.formula},proof:{name:"ax-gen",args:[hyp]},dv:hyp.dv,compound:2})
 	pushundo({action:"gen",hyp:hyp})
 }
 function pushundo(x){
@@ -368,8 +368,8 @@ function swaptos(){
 	stack.push(s)
 	pushundo({action:"swap"})
 }
-displayascii={"->":["(",0,"->",1,")"],"~":["~",0],"<->":["(",0,"<->",1,")"],"&":["(",0,"/\\",1,")"],"|":["(",0,"\\/",1,")"],"A.":["A",0,1],"E.":["E",0,1],"E!":["E!",0,1],"E*":["E*",0,1],"F.":["NF",0,1],"=":[0,"=",1],"<":[0,"&lt;",1],"set":[0],"sub":["[",0,"/",1,"]",2],"ab":["{",0,"|",1,"}"],"<=":[0,"<=",1],"u.":["(",0,"u.",1,")"],"i.":["(",0,"i.",1,")"],"(/)":["(/)"],"V.":["V."],"U.":["U.",0],"I.":["I.",0],"P.":["P.",0],"{1}":["{",0,"}"],"{2}":["{",0,",",1,"}"]}
-displayunicode={"->":["(",0,"&#x2192;",1,")"],"~":["&#xAC;",0],"<->":["(",0,"&#x2194;",1,")"],"&":["(",0,"&#x2227;",1,")"],"|":["(",0,"&#x2228;",1,")"],"A.":["&#x2200;",0,1],"E.":["&#x2203;",0,1],"E!":["&#x2203;!",0,1],"E*":["&#x2203;*",0,1],"F.":["&#x2132;",0,1],"=":[0,"=",1],"<":[0,"&#x2208;",1],"set":[0],"sub":["[",0,"/",1,"]",2],"ab":["{",0,"|",1,"}"],"<=":[0,"&#x2286;",1],"u.":["(",0,"&#x222A;",1,")"],"i.":["(",0,"&#x2229;",1,")"],"(/)":["&#x2298;"],"V.":["V."],"U.":["&#x222A;",0],"I.":["&#x2229;",0],"P.":["&#x1D4AB;",0],"{1}":["{",0,"}"],"{2}":["{",0,",",1,"}"]}
+displayascii={"->":["(",0,"->",1,")"],"~":["~",0],"<->":["(",0,"<->",1,")"],"&":["(",0,"/\\",1,")"],"|":["(",0,"\\/",1,")"],"A.":["A",0,1],"E.":["E",0,1],"E!":["E!",0,1],"E*":["E*",0,1],"F.":["NF",0,1],"=":[0,"=",1],"<":[0,"&lt;",1],"set":[0],"sub":["[",0,"/",1,"]",2],"ab":["{",0,"|",1,"}"],"<=":[0,"<=",1],"u.":["(",0,"u.",1,")"],"i.":["(",0,"i.",1,")"],"(/)":["(/)"],"V.":["V."],"U.":["U.",0],"I.":["I.",0],"P.":["P.",0],"{1}":["{",0,"}"],"{2}":["{",0,",",1,"}"],"S":["S.",0]}
+displayunicode={"->":["(",0,"&#x2192;",1,")"],"~":["&#xAC;",0],"<->":["(",0,"&#x2194;",1,")"],"&":["(",0,"&#x2227;",1,")"],"|":["(",0,"&#x2228;",1,")"],"A.":["&#x2200;",0,1],"E.":["&#x2203;",0,1],"E!":["&#x2203;!",0,1],"E*":["&#x2203;*",0,1],"F.":["&#x2132;",0,1],"=":[0,"=",1],"<":[0,"&#x2208;",1],"set":[0],"sub":["[",0,"/",1,"]",2],"ab":["{",0,"|",1,"}"],"<=":[0,"&#x2286;",1],"u.":["(",0,"&#x222A;",1,")"],"i.":["(",0,"&#x2229;",1,")"],"(/)":["&#x2298;"],"V.":["V."],"U.":["&#x222A;",0],"I.":["&#x2229;",0],"P.":["&#x1D4AB;",0],"{1}":["{",0,"}"],"{2}":["{",0,",",1,"}"],"S":["S.",0]}
 function print(exp){
 	if(exp.type=="var"){
 		var varnames;
@@ -422,13 +422,19 @@ function printdv(thm){
 	}
 	return t
 }
-function showproof(proof){
+function showproof(elem){
 	var t=""
-	for(var i=0;i<proof.args.length;i++){
-		t+=showproof(proof.args[i].proof)
-		t+=" "
+	for(var i=0;i<elem.proof.args.length;i++){
+		if(settings.fullproofs||elem.compound==2){
+			t+=showproof(elem.proof.args[i])
+			t+=" "
+		}
 	}
-	return t+proof.name
+	if(settings.fullproofs||elem.compound!=1){
+		return t+elem.proof.name
+	}else{
+		return elem.thmname
+	}
 }
 function dvcopy(dv){
 	out=[]
@@ -443,7 +449,7 @@ function dvcopy(dv){
 }
 function deepcopy(x){
 	if(x.proof){
-		return {formula:deepcopy(x.formula),proof:deepcopy(x.proof),dv:dvcopy(x.dv)}
+		return {formula:deepcopy(x.formula),proof:deepcopy(x.proof),dv:dvcopy(x.dv),compound:x.compound,thmname:x.thmname}
 	}else if(!x){
 		return null
 	}else if(x.type=="var"){
@@ -467,8 +473,11 @@ function pushthm(name){
 	pushundo({action:"thm",name:name})
 }
 function savethm(){
-	var t=stack[stack.length-1]
-	saved[prompt("Name")]=deepcopy(t)
+	var t=deepcopy(stack[stack.length-1])
+	t.compound=1
+	var n=prompt("Name")
+	t.thmname=n
+	saved[n]=t
 }
 function loadthm(){
 	var t=prompt("Name")
@@ -548,7 +557,8 @@ saved={
 	'df-int':parseaxiom([1,'set',0,'set','<',1,1,'set','<','->',1,'A.',0,'ab',0,'I.','='],[[['class',0],['set',0]],[['class',0],['set',1]]],'df-int'),
 	'df-pw':parseaxiom([0,0,'set','<=',0,'ab',0,'P.','='],[[['class',0],['set',0]]],'df-pw'),
 	'df-sn':parseaxiom([0,0,'set','=',0,'ab',0,'{1}','='],[[['class',0],['set',0]]],'df-sn'),
-	'df-pr':parseaxiom([1,'{1}',0,'{1}','u.',1,0,'{2}','='],[],'df-pr')
+	'df-pr':parseaxiom([1,'{1}',0,'{1}','u.',1,0,'{2}','='],[],'df-pr'),
+	'df-suc':parseaxiom([0,'{1}',0,'u.',0,'S','='],[],'df-suc')
 }
 function dvreplace(dv,rep){
 	if(dv.length){
@@ -687,12 +697,12 @@ if(debugu){
 	color:red;
 }
 .var_class {
-	color:purple;
+	color:#A0A;
 }
 </style>
 </head>
 <body>
-Metamath Solitaire JS (build 8.1, June 14)
+Metamath Solitaire JS (build 8.2, June 14)
 <br>
 <button onclick="pushclick('ax-1')">ax1</button>
 <button onclick="pushclick('ax-2')">ax2</button>
@@ -758,6 +768,7 @@ Metamath Solitaire JS (build 8.1, June 14)
 <button onclick="pushthm('df-pw');showstack()">dfpw</button>
 <button onclick="pushthm('df-sn');showstack()">dfsn</button>
 <button onclick="pushthm('df-pr');showstack()">dfpr</button>
+<button onclick="pushthm('df-suc');showstack()">dfsuc</button>
 <br>
 <button onclick="undo();showstack()">undo</button>
 <button onclick="redo();showstack()">redo</button>
@@ -767,12 +778,13 @@ Metamath Solitaire JS (build 8.1, June 14)
 <button onclick="swaptos();showstack()">swap top</button>
 <button onclick="savethm()">save top</button>
 <button onclick="loadthm();showstack()">load</button>
-<button onclick="console.log(showproof(stack[stack.length-1].proof));alert(showproof(stack[stack.length-1].proof))">export top</button>
+<button onclick="console.log(showproof(stack[stack.length-1]));alert(showproof(stack[stack.length-1]))">export top</button>
 <button onclick="importthm();showstack()">import</button>
 <br>
 <button onclick="settings.unicode^=1;showstack()">toggle unicode</button>
 <button onclick="settings.varcolors^=1;showstack()">toggle varcolors</button>
 <button onclick="settings.reverse^=1;showstack()">toggle reverse stack</button>
+<button onclick="settings.fullproofs^=1">toggle export full proofs</button>
 <button onclick="settings.debugu^=1;alert('toggled')"">toggle wii u test</button>
 <div id="stackbox"></div>
 <a href="http://us.metamath.org/mpeuni/mmset.html">Metamath</a>
