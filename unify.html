@@ -112,7 +112,7 @@ function vars(exp){
 			var o=vars(exp[i])
 			for(var j=0;j<o.length;j++){
 				//if(t.every(a=>!termeq(a,o[j]))){
-				if(t.every(function(a){!termeq(a,o[j])})){
+				if(t.every(function(a){return !termeq(a,o[j])})){
 					t.push(o[j])
 				}
 			}
@@ -169,7 +169,7 @@ function unify(eq,dv){
 		var dv3=[]
 		for(var j=0;j<dv2.length;j++){
 			//var ind=dv2[j].findIndex(a=>termeq(a,out[i][0]))
-			var ind=dv2[j].findIndex(function(a){termeq(a,out[i][0])})
+			var ind=dv2[j].findIndex(function(a){return termeq(a,out[i][0])})
 			if(ind>-1){
 				for(var k=0;k<tvars.length;k++){
 					var t=Object.assign([],dv2[j])
@@ -297,7 +297,7 @@ function mp(){
 		}
 		for(var i=0;i<dv2.length;i++){
 			//if(!dv2[i].every(a=>vars(form).some(b=>termeq(a,b)))){
-			if(!dv2[i].every(function(a){vars(form).some(b=>termeq(a,b))})){
+			if(!dv2[i].every(function(a){return vars(form).some(function(b){return termeq(a,b)})})){
 				dv2.splice(i--,1) //todo: generalize to larger groups
 			}
 		}
@@ -692,7 +692,7 @@ if(debugu){
 </style>
 </head>
 <body>
-Metamath Solitaire JS (build 8, June 12)
+Metamath Solitaire JS (build 8.1, June 14)
 <br>
 <button onclick="pushclick('ax-1')">ax1</button>
 <button onclick="pushclick('ax-2')">ax2</button>
