@@ -30,11 +30,23 @@ Variable colors +
 Release +
 Make distinct variables actually work (16 gen 9 mp) +
 Fix distinct variables not carrying over with substitutions +
+Fix distinct variable condition duplication ?
+Compressed proof formats
 Export/import with clipboard
+Fix ax-17 ax-17 syl (broken between b7 and b7.3)
 -->
 <script type="text/javascript">
 //wii u debugging
+function update(name,value){
+	document.getElementById(name).innerHTML=value
+}
 debugu=false
+function debugout(x){
+	update("stackbox",x)
+}
+if(debugu){
+	debugout("Ahem")
+}
 //scope=local/global (global vars occur in hypotheses)
 //quant=universal/existential (p vs $1)
 wff={type:"const",op:"->",0:{type:"var",scope:"l",quant:"u",id:0},1:{type:"var",scope:"g",quant:"e",id:0}}
@@ -172,6 +184,15 @@ function unify(eq,dv){
 			}
 		}
 		dv2=dv3
+	}
+	for(var i=0;i<dv2.length;i++){
+		for(var j=0;j<i;j++){
+			if((termeq(dv2[i][0],dv2[j][0])&&termeq(dv2[i][1],dv2[j][1]))||(termeq(dv2[i][0],dv2[j][1])&&termeq(dv2[i][1],dv2[j][0]))){
+				dv2.splice(i,1)
+				i--
+				break
+			}
+		}
 	}
 	return {eq:out,dv:dv2}
 }
@@ -363,7 +384,7 @@ function print(exp){
 		}
 		var left_tag=''
 		var right_tag=''
-		if(settings.var_colors){
+		if(settings.varcolors){
 			left_tag='<span class="var_'+exp.sort+'">'
 			right_tag='</span>'
 		}
@@ -513,7 +534,7 @@ saved={
 	'ax-un':parseaxiom([0,'set',1,'set','<',2,'set',0,'set','<',0,'set',1,'set','<','&',0,'E.','->',1,'A.',0,'E.'],[[['set',0],['set',1]],[['set',0],['set',2]],[['set',1],['set',2]]],'ax-un'),
 	'ax-pow':parseaxiom([0,'set',1,'set','<',2,'set',0,'set','<',1,'set',0,'set','<','->',0,'A.','->',1,'A.',0,'E.'],[[['set',0],['set',1]],[['set',0],['set',2]],[['set',1],['set',2]]],'ax-pow'),
 	'ax-reg':parseaxiom([1,'set',2,'set','<','~',0,'set',2,'set','<','->',2,'A.',1,'set',0,'set','<','&',0,'E.',1,'set',0,'set','<','->'],[[['set',0],['set',1]],[['set',0],['set',2]],[['set',1],['set',2]]],'ax-reg'),
-	'ax-inf':parseaxiom([0,'set',2,'set','<',2,'set',1,'set','<','&',2,'E.',0,'set',1,'set','<','->',1,'A.',0,'set',1,'set','<','&',0,'E.'],[[['set',0],['set',1]],[['set',0],['set',2]],[['set',1],['set',2]],[['set',1],['set',2]]],'ax-inf'),
+	'ax-inf':parseaxiom([0,'set',2,'set','<',2,'set',1,'set','<','&',2,'E.',0,'set',1,'set','<','->',1,'A.',0,'set',1,'set','<','&',0,'E.'],[[['set',0],['set',1]],[['set',0],['set',2]],[['set',1],['set',2]]],'ax-inf'),
 	'ax-ac':parseaxiom([3,'set',1,'set','=',0,'set',3,'set','<',3,'set',2,'set','<','&',3,'set',2,'set','<',2,'set',1,'set','<','&','&',3,'E.','<->',1,'A.',3,'E.',3,'set',2,'set','<',2,'set',1,'set','<','&','->',2,'A.',1,'A.',0,'E.'],[[['set',0],['set',1]],[['set',0],['set',1]],[['set',0],['set',2]],[['set',0],['set',3]],[['set',1],['set',2]],[['set',1],['set',3]],[['set',1],['set',3]]],'ax-ac'),
 	'df-clab':parseaxiom([0,1,0,'sub',0,1,'ab',0,'set','<','<->'],[],'df-clab'),
 	'df-cleq':parseaxiom([1,0,'set','<',0,0,'set','<','<->',0,'A.',1,0,'=','<->'],[[['class',0],['set',0]],[['class',1],['set',0]]],'df-cleq'),
@@ -578,13 +599,45 @@ function renderstack(sep){
 	return ret
 }
 function showstack(){
-	stackbox.innerHTML=renderstack("<br>")
+	update("stackbox",renderstack("<br>"))
 }
 function pushclick(n){
-	pushthm(n)
-	showstack()
+	try{
+		pushthm(n)
+		showstack()
+	}catch(e){
+		alert(e)
+		throw e
+	}
 }
-settings={unicode:true,var_colors:true,reverse:true}
+//proof of (P->P): ax-2 ax-1 ax-mp ax-1 ax-1 ax-1 ax-2 ax-mp ax-1 ax-mp ax-1 ax-mp ax-mp ax-2 ax-mp ax-mp ax-mp
+function clickstorm(rep){
+	if(rep){
+		var valids= ["ax-1","ax-2","ax-3","ax-4","ax-gen","ax-5","ax-mp"]
+		var weights=[0.1   ,0.1   ,0.03  ,0.02  ,0.03   ,0.02 ,0.7]
+		var t=Math.random()
+		for(var i=0;t>0;i++){
+			t-=weights[i]
+		}
+		i--
+		var r=valids[i]
+		if(r=="ax-mp"){
+			mp()
+		}else if(r=="ax-gen"){
+			gen()
+		}else{
+			pushclick(r)
+		}
+		if(stack.length>10&&Math.random()<0.5){
+			deletetos()
+		}
+		if(stack.length&&print(stack[stack.length-1].formula).length>=(settings.varcolors?1000:50)){
+			deletetos()
+		}
+		setTimeout(100,clickstorm(rep-1))
+	}
+}
+settings={unicode:true,varcolors:true,reverse:true}
 function animation(fwd){
 	if(fwd){
 		if(redostack.length){
@@ -622,6 +675,9 @@ function test(){
 	mp()
 	console.log(renderstack())
 }
+if(debugu){
+	alert("Initialized")
+}
 </script>
 <style>
 .var_wff {
@@ -636,7 +692,7 @@ function test(){
 </style>
 </head>
 <body>
-Metamath Solitaire JS (build 7.2, June 11)
+Metamath Solitaire JS (build 8, June 12)
 <br>
 <button onclick="pushclick('ax-1')">ax1</button>
 <button onclick="pushclick('ax-2')">ax2</button>
@@ -706,6 +762,7 @@ Metamath Solitaire JS (build 7.2, June 11)
 <button onclick="undo();showstack()">undo</button>
 <button onclick="redo();showstack()">redo</button>
 <button onclick="animation(redostack.length)">animation</button>
+<button onclick="clickstorm(30)">prove stuff</button>
 <button onclick="deletetos();showstack()">delete top</button>
 <button onclick="swaptos();showstack()">swap top</button>
 <button onclick="savethm()">save top</button>
@@ -714,8 +771,9 @@ Metamath Solitaire JS (build 7.2, June 11)
 <button onclick="importthm();showstack()">import</button>
 <br>
 <button onclick="settings.unicode^=1;showstack()">toggle unicode</button>
-<button onclick="settings.var_colors^=1;showstack()">toggle varcolors</button>
+<button onclick="settings.varcolors^=1;showstack()">toggle varcolors</button>
 <button onclick="settings.reverse^=1;showstack()">toggle reverse stack</button>
+<button onclick="settings.debugu^=1;alert('toggled')"">toggle wii u test</button>
 <div id="stackbox"></div>
 <a href="http://us.metamath.org/mpeuni/mmset.html">Metamath</a>
 </body>
