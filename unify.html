@@ -51,7 +51,7 @@ if(debugu){
 //quant=universal/existential (p vs $1)
 wff={type:"const",op:"->",0:{type:"var",scope:"l",quant:"u",id:0},1:{type:"var",scope:"g",quant:"e",id:0}}
 //connective argument types
-connectives={"->":{in:["wff","wff"],out:"wff"},"~":{in:["wff"],out:"wff"},"<->":{in:["wff","wff"],out:"wff"},"&":{in:["wff","wff"],out:"wff"},"|":{in:["wff","wff"],out:"wff"},"A.":{in:["set","wff"],out:"wff"},"E.":{in:["set","wff"],out:"wff"},"E!":{in:["set","wff"],out:"wff"},"E*":{in:["set","wff"],out:"wff"},"F.":{in:["set","wff"],out:"wff"},"=":{in:["class","class"],out:"wff"},"<":{in:["class","class"],out:"wff"},"set":{in:["set"],out:"set"},"sub":{in:["set","set","wff"],out:"wff"},"ab":{in:["set","wff"],out:"class"},"<=":{in:["class","class"],out:"wff"},"u.":{in:["class","class"],out:"class"},"i.":{in:["class","class"],out:"class"},"(/)":{in:[],out:"class"},"V.":{in:[],out:"class"},"U.":{in:["class"],out:"class"},"I.":{in:["class"],out:"class"},"P.":{in:["class"],out:"class"},"{1}":{in:["class"],out:"class"},"{2}":{in:["class","class"],out:"class"},"S":{in:["class"],out:"class"}}
+connectives={"->":{in:["wff","wff"],out:"wff"},"~":{in:["wff"],out:"wff"},"<->":{in:["wff","wff"],out:"wff"},"&":{in:["wff","wff"],out:"wff"},"|":{in:["wff","wff"],out:"wff"},"A.":{in:["set","wff"],out:"wff"},"E.":{in:["set","wff"],out:"wff"},"E!":{in:["set","wff"],out:"wff"},"E*":{in:["set","wff"],out:"wff"},"F.":{in:["set","wff"],out:"wff"},"=":{in:["class","class"],out:"wff"},"<":{in:["class","class"],out:"wff"},"set":{in:["set"],out:"set"},"sub":{in:["set","set","wff"],out:"wff"},"ab":{in:["set","wff"],out:"class"},"<=":{in:["class","class"],out:"wff"},"u.":{in:["class","class"],out:"class"},"i.":{in:["class","class"],out:"class"},"(/)":{in:[],out:"class"},"V.":{in:[],out:"class"},"U.":{in:["class"],out:"class"},"I.":{in:["class"],out:"class"},"P.":{in:["class"],out:"class"},"{1}":{in:["class"],out:"class"},"{2}":{in:["class","class"],out:"class"},"<2>":{in:["class","class"],out:"class"},"S":{in:["class"],out:"class"}}
 function termeq(x,y){
 	if(x.type!=y.type){
 		return false
@@ -368,8 +368,8 @@ function swaptos(){
 	stack.push(s)
 	pushundo({action:"swap"})
 }
-displayascii={"->":["(",0,"->",1,")"],"~":["~",0],"<->":["(",0,"<->",1,")"],"&":["(",0,"/\\",1,")"],"|":["(",0,"\\/",1,")"],"A.":["A",0,1],"E.":["E",0,1],"E!":["E!",0,1],"E*":["E*",0,1],"F.":["NF",0,1],"=":[0,"=",1],"<":[0,"&lt;",1],"set":[0],"sub":["[",0,"/",1,"]",2],"ab":["{",0,"|",1,"}"],"<=":[0,"<=",1],"u.":["(",0,"u.",1,")"],"i.":["(",0,"i.",1,")"],"(/)":["(/)"],"V.":["V."],"U.":["U.",0],"I.":["I.",0],"P.":["P.",0],"{1}":["{",0,"}"],"{2}":["{",0,",",1,"}"],"S":["S.",0]}
-displayunicode={"->":["(",0,"&#x2192;",1,")"],"~":["&#xAC;",0],"<->":["(",0,"&#x2194;",1,")"],"&":["(",0,"&#x2227;",1,")"],"|":["(",0,"&#x2228;",1,")"],"A.":["&#x2200;",0,1],"E.":["&#x2203;",0,1],"E!":["&#x2203;!",0,1],"E*":["&#x2203;*",0,1],"F.":["&#x2132;",0,1],"=":[0,"=",1],"<":[0,"&#x2208;",1],"set":[0],"sub":["[",0,"/",1,"]",2],"ab":["{",0,"|",1,"}"],"<=":[0,"&#x2286;",1],"u.":["(",0,"&#x222A;",1,")"],"i.":["(",0,"&#x2229;",1,")"],"(/)":["&#x2298;"],"V.":["V."],"U.":["&#x222A;",0],"I.":["&#x2229;",0],"P.":["&#x1D4AB;",0],"{1}":["{",0,"}"],"{2}":["{",0,",",1,"}"],"S":["S.",0]}
+displayascii={"->":["(",0,"->",1,")"],"~":["~",0],"<->":["(",0,"<->",1,")"],"&":["(",0,"/\\",1,")"],"|":["(",0,"\\/",1,")"],"A.":["A",0,1],"E.":["E",0,1],"E!":["E!",0,1],"E*":["E*",0,1],"F.":["NF",0,1],"=":[0,"=",1],"<":[0,"&lt;",1],"set":[0],"sub":["[",0,"/",1,"]",2],"ab":["{",0,"|",1,"}"],"<=":[0,"<=",1],"u.":["(",0,"u.",1,")"],"i.":["(",0,"i.",1,")"],"(/)":["(/)"],"V.":["V."],"U.":["U.",0],"I.":["I.",0],"P.":["P.",0],"{1}":["{",0,"}"],"{2}":["{",0,",",1,"}"],"<2>":["<",0,",",1,">"],"S":["suc",0]}
+displayunicode={"->":["(",0,"&#x2192;",1,")"],"~":["&#xAC;",0],"<->":["(",0,"&#x2194;",1,")"],"&":["(",0,"&#x2227;",1,")"],"|":["(",0,"&#x2228;",1,")"],"A.":["&#x2200;",0,1],"E.":["&#x2203;",0,1],"E!":["&#x2203;!",0,1],"E*":["&#x2203;*",0,1],"F.":["&#x2132;",0,1],"=":[0,"=",1],"<":[0,"&#x2208;",1],"set":[0],"sub":["[",0,"/",1,"]",2],"ab":["{",0,"|",1,"}"],"<=":[0,"&#x2286;",1],"u.":["(",0,"&#x222A;",1,")"],"i.":["(",0,"&#x2229;",1,")"],"(/)":["&#x2298;"],"V.":["V."],"U.":["&#x222A;",0],"I.":["&#x2229;",0],"P.":["&#x1D4AB;",0],"{1}":["{",0,"}"],"{2}":["{",0,",",1,"}"],"<2>":["&#x3008;",0,",",1,"&#x3009;"],"S":["suc",0]}
 function print(exp){
 	if(exp.type=="var"){
 		var varnames;
@@ -558,6 +558,7 @@ saved={
 	'df-pw':parseaxiom([0,0,'set','<=',0,'ab',0,'P.','='],[[['class',0],['set',0]]],'df-pw'),
 	'df-sn':parseaxiom([0,0,'set','=',0,'ab',0,'{1}','='],[[['class',0],['set',0]]],'df-sn'),
 	'df-pr':parseaxiom([1,'{1}',0,'{1}','u.',1,0,'{2}','='],[],'df-pr'),
+	'df-op':parseaxiom([2,1,'{2}',1,'{1}','{2}',0,'<','V.',1,'<','V.',0,'<','&','&',0,'ab',1,0,'<2>','='],[],'df-op'),
 	'df-suc':parseaxiom([0,'{1}',0,'u.',0,'S','='],[],'df-suc')
 }
 function dvreplace(dv,rep){
@@ -702,7 +703,7 @@ if(debugu){
 </style>
 </head>
 <body>
-Metamath Solitaire JS (build 8.2, June 14)
+Metamath Solitaire JS (build 8.3, June 13)
 <br>
 <button onclick="pushclick('ax-1')">ax1</button>
 <button onclick="pushclick('ax-2')">ax2</button>
@@ -714,37 +715,37 @@ Metamath Solitaire JS (build 8.2, June 14)
 <button onclick="pushthm('df-or');showstack()">dfor</button>
 <button onclick="pushthm('df-an');showstack()">dfan</button>
 <br>
-<button onclick="pushthm('ax-4');showstack()">ax4</button>
-<button onclick="pushthm('ax-5');showstack()">ax5</button>
-<button onclick="pushthm('ax-5o');showstack()">ax5o</button>
-<button onclick="pushthm('ax-6');showstack()">ax6</button>
-<button onclick="pushthm('ax-7');showstack()">ax7</button>
+<button onclick="pushthm('ax-4');showstack()">axc5</button>
+<button onclick="pushthm('ax-5');showstack()">ax4</button>
+<button onclick="pushthm('ax-5o');showstack()">axc4</button>
+<button onclick="pushthm('ax-6');showstack()">ax10</button>
+<button onclick="pushthm('ax-7');showstack()">ax11</button>
 <button onclick="gen();showstack()">axgen</button>
 <button onclick="pushthm('df-ex');showstack()">dfex</button>
 <button onclick="pushthm('df-eu');showstack()">dfeu</button>
 <button onclick="pushthm('df-mo');showstack()">dfmo</button>
 <button onclick="pushthm('df-nf');showstack()">dfnf</button>
 <br>
-<button onclick="pushthm('ax-8');showstack()">ax8</button>
-<button onclick="pushthm('ax-9o');showstack()">ax9o</button>
-<button onclick="pushthm('ax-10o');showstack()">ax10o</button>
-<button onclick="pushthm('ax-11o');showstack()">ax11o</button>
-<button onclick="pushthm('ax-12o');showstack()">ax12o</button>
-<button onclick="pushthm('ax-13');showstack()">ax13</button>
-<button onclick="pushthm('ax-14');showstack()">ax14</button>
-<button onclick="pushthm('ax-16');showstack()">ax16</button>
-<button onclick="pushthm('ax-17');showstack()">ax17</button>
+<button onclick="pushthm('ax-8');showstack()">ax7</button>
+<button onclick="pushthm('ax-9o');showstack()">axc10</button>
+<button onclick="pushthm('ax-10o');showstack()">axc11</button>
+<button onclick="pushthm('ax-11o');showstack()">axc15</button>
+<button onclick="pushthm('ax-12o');showstack()">axc9</button>
+<button onclick="pushthm('ax-13');showstack()">ax8</button>
+<button onclick="pushthm('ax-14');showstack()">ax9</button>
+<button onclick="pushthm('ax-16');showstack()">axc16</button>
+<button onclick="pushthm('ax-17');showstack()">ax5</button>
 <button onclick="pushthm('df-sb');showstack()">dfsb</button>
 <br>
-<button onclick="pushthm('ax-6a');showstack()">ax6a</button>
-<button onclick="pushthm('ax-6o');showstack()">ax6o</button>
-<button onclick="pushthm('ax-9v');showstack()">ax9v</button>
-<button onclick="pushthm('ax-9');showstack()">ax9</button>
-<button onclick="pushthm('ax-10');showstack()">ax10</button>
-<button onclick="pushthm('ax-11');showstack()">ax11</button>
-<button onclick="pushthm('ax-12v');showstack()">ax12v</button>
-<button onclick="pushthm('ax-12');showstack()">ax12</button>
-<button onclick="pushthm('ax-15');showstack()">ax15</button>
+<button onclick="pushthm('ax-6a');showstack()">ax10a</button>
+<button onclick="pushthm('ax-6o');showstack()">axc7</button>
+<button onclick="pushthm('ax-9v');showstack()">ax6v</button>
+<button onclick="pushthm('ax-9');showstack()">ax6</button>
+<button onclick="pushthm('ax-10');showstack()">axc11n</button>
+<button onclick="pushthm('ax-11');showstack()">ax12</button>
+<button onclick="pushthm('ax-12v');showstack()">ax13v</button>
+<button onclick="pushthm('ax-12');showstack()">ax13</button>
+<button onclick="pushthm('ax-15');showstack()">axc14 </button>
 <button onclick="pushthm('ax-extv');showstack()">axextv</button>
 <br>
 <button onclick="pushthm('ax-ext');showstack()">axext</button>
@@ -768,6 +769,7 @@ Metamath Solitaire JS (build 8.2, June 14)
 <button onclick="pushthm('df-pw');showstack()">dfpw</button>
 <button onclick="pushthm('df-sn');showstack()">dfsn</button>
 <button onclick="pushthm('df-pr');showstack()">dfpr</button>
+<button onclick="pushthm('df-op');showstack()">dfop</button>
 <button onclick="pushthm('df-suc');showstack()">dfsuc</button>
 <br>
 <button onclick="undo();showstack()">undo</button>
