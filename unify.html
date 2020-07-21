@@ -34,7 +34,7 @@ Fix distinct variable condition duplication +
 Compressed proof formats
 Export/import with clipboard
 Fix ax-17 ax-17 syl (broken between b7 and b7.3) +
-Fix ax-1 ax-2 ax-2 ax-mp ax-mp unifier bug
+Fix ax-1 ax-2 ax-2 ax-mp ax-mp unifier bug +
 -->
 <script type="text/javascript">
 //wii u debugging
@@ -82,7 +82,7 @@ function occurs(v,exp){
 		return (exp.scope==v.scope&&exp.quant==v.quant&&exp.sort==v.sort&&exp.id==v.id)
 	}else{
 		for(var i=0;i<connectives[exp.op].in.length;i++){
-			if(occurs(exp[i],v)){
+			if(occurs(v,exp[i])){
 				return true
 			}
 		}
@@ -374,15 +374,15 @@ displayunicode={"->":["(",0,"&#x2192;",1,")"],"~":["&#xAC;",0],"<->":["(",0,"&#x
 function print(exp){
 	if(exp.type=="var"){
 		var varnames;
-		if(exp.sort=="wff"){
+		/*if(exp.sort=="wff"){
 			varnames="PQRSTUVWXYZ"
 		}else if(exp.sort=="set"){
 			varnames="xyzwvutsrqp"
 		}else if(exp.sort=="class"){
 			varnames="ABCDEFGHIJK"
-		}else{
+		}else{*/
 			return exp.sort+exp.id
-		}
+		//}
 		var left_tag=''
 		var right_tag=''
 		if(settings.varcolors){
@@ -559,7 +559,7 @@ saved={
 	'df-pw':parseaxiom([0,0,'set','<=',0,'ab',0,'P.','='],[[['class',0],['set',0]]],'df-pw'),
 	'df-sn':parseaxiom([0,0,'set','=',0,'ab',0,'{1}','='],[[['class',0],['set',0]]],'df-sn'),
 	'df-pr':parseaxiom([1,'{1}',0,'{1}','u.',1,0,'{2}','='],[],'df-pr'),
-	'df-op':parseaxiom([2,1,'{2}',1,'{1}','{2}',0,'<','V.',1,'<','V.',0,'<','&','&',0,'ab',1,0,'<2>','='],[],'df-op'),
+	'df-op':parseaxiom([2,1,'{2}',1,'{1}','{2}',0,'set','<','V.',1,'<','V.',0,'<','&','&',0,'ab',1,0,'<2>','='],[],'df-op'),
 	'df-suc':parseaxiom([0,'{1}',0,'u.',0,'S','='],[],'df-suc')
 }
 function dvreplace(dv,rep){
@@ -728,7 +728,7 @@ function keyboard(){
 </style>
 </head>
 <body onload="keyboard()">
-Metamath Solitaire JS (build 8.4, July 15)
+Metamath Solitaire JS (build 8.4.1, July 20)
 <br>
 <table><tr>
 <td>Propositional calculus</td>
