@@ -374,15 +374,15 @@ displayunicode={"->":["(",0,"&#x2192;",1,")"],"~":["&#xAC;",0],"<->":["(",0,"&#x
 function print(exp){
 	if(exp.type=="var"){
 		var varnames;
-		/*if(exp.sort=="wff"){
+		if(exp.sort=="wff"){
 			varnames="PQRSTUVWXYZ"
 		}else if(exp.sort=="set"){
 			varnames="xyzwvutsrqp"
 		}else if(exp.sort=="class"){
 			varnames="ABCDEFGHIJK"
-		}else{*/
+		}else{
 			return exp.sort+exp.id
-		//}
+		}
 		var left_tag=''
 		var right_tag=''
 		if(settings.varcolors){
@@ -728,7 +728,7 @@ function keyboard(){
 </style>
 </head>
 <body onload="keyboard()">
-Metamath Solitaire JS (build 8.4.1, July 20)
+Metamath Solitaire JS (build 8.4.2, July 20)
 <br>
 <table><tr>
 <td>Propositional calculus</td>
