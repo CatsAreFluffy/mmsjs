@@ -34,6 +34,7 @@ Fix distinct variable condition duplication +
 Compressed proof formats
 Export/import with clipboard
 Fix ax-17 ax-17 syl (broken between b7 and b7.3) +
+Fix ax-1 ax-2 ax-2 ax-mp ax-mp unifier bug
 -->
 <script type="text/javascript">
 //wii u debugging
@@ -664,6 +665,11 @@ function animation(fwd){
 		}
 	}
 }
+function gend(proof){
+	var ret=proof.replace(/ ax-/g,"").replace(/mp/g,"D").replace(/gen/g,"G").split("").reverse().join("")
+	console.log(ret.length)
+	return ret	
+}
 //test script for b1/2 features, might not work anymore
 function test(){
 	//test wff 1 is (P->R) test wff 2 is (P->Q)
@@ -689,6 +695,25 @@ function test(){
 if(debugu){
 	alert("Initialized")
 }
+var codes={"ArrowUp":"ax-1","ArrowRight":"ax-2","ArrowLeft":"ax-3","KeyQ":"df-bi1","KeyW":"df-bi2","KeyE":"df-bi3"}
+for(var i=1;i<4;i++){
+	codes["Digit"+i]="ax-"+i
+}
+function keyboard(){
+	function keypress(e){
+		if(e.code=="Space"||e.code=="ArrowDown"){
+			mp()
+			showstack()
+		}else if(e.code=="KeyT"){
+			gen()
+			showstack()
+		}else if(codes[e.code]){
+			pushthm(codes[e.code])
+			showstack()
+		}
+	}
+	document.addEventListener("keydown",keypress)
+}
 </script>
 <style>
 .var_wff {
@@ -702,92 +727,101 @@ if(debugu){
 }
 </style>
 </head>
-<body>
-Metamath Solitaire JS (build 8.3, June 13)
+<body onload="keyboard()">
+Metamath Solitaire JS (build 8.4, July 15)
 <br>
-<button onclick="pushclick('ax-1')">ax1</button>
-<button onclick="pushclick('ax-2')">ax2</button>
-<button onclick="pushthm('ax-3');showstack()">ax3</button>
-<button onclick="mp();showstack()">axmp</button>
-<button onclick="pushthm('df-bi1');showstack()">dfbi1</button>
-<button onclick="pushthm('df-bi2');showstack()">dfbi2</button>
-<button onclick="pushthm('df-bi3');showstack()">dfbi3</button>
-<button onclick="pushthm('df-or');showstack()">dfor</button>
-<button onclick="pushthm('df-an');showstack()">dfan</button>
-<br>
-<button onclick="pushthm('ax-4');showstack()">axc5</button>
-<button onclick="pushthm('ax-5');showstack()">ax4</button>
-<button onclick="pushthm('ax-5o');showstack()">axc4</button>
-<button onclick="pushthm('ax-6');showstack()">ax10</button>
-<button onclick="pushthm('ax-7');showstack()">ax11</button>
-<button onclick="gen();showstack()">axgen</button>
-<button onclick="pushthm('df-ex');showstack()">dfex</button>
-<button onclick="pushthm('df-eu');showstack()">dfeu</button>
-<button onclick="pushthm('df-mo');showstack()">dfmo</button>
-<button onclick="pushthm('df-nf');showstack()">dfnf</button>
-<br>
-<button onclick="pushthm('ax-8');showstack()">ax7</button>
-<button onclick="pushthm('ax-9o');showstack()">axc10</button>
-<button onclick="pushthm('ax-10o');showstack()">axc11</button>
-<button onclick="pushthm('ax-11o');showstack()">axc15</button>
-<button onclick="pushthm('ax-12o');showstack()">axc9</button>
-<button onclick="pushthm('ax-13');showstack()">ax8</button>
-<button onclick="pushthm('ax-14');showstack()">ax9</button>
-<button onclick="pushthm('ax-16');showstack()">axc16</button>
-<button onclick="pushthm('ax-17');showstack()">ax5</button>
-<button onclick="pushthm('df-sb');showstack()">dfsb</button>
-<br>
-<button onclick="pushthm('ax-6a');showstack()">ax10a</button>
-<button onclick="pushthm('ax-6o');showstack()">axc7</button>
-<button onclick="pushthm('ax-9v');showstack()">ax6v</button>
-<button onclick="pushthm('ax-9');showstack()">ax6</button>
-<button onclick="pushthm('ax-10');showstack()">axc11n</button>
-<button onclick="pushthm('ax-11');showstack()">ax12</button>
-<button onclick="pushthm('ax-12v');showstack()">ax13v</button>
-<button onclick="pushthm('ax-12');showstack()">ax13</button>
-<button onclick="pushthm('ax-15');showstack()">axc14 </button>
-<button onclick="pushthm('ax-extv');showstack()">axextv</button>
-<br>
-<button onclick="pushthm('ax-ext');showstack()">axext</button>
-<button onclick="pushthm('ax-rep');showstack()">axrep</button>
-<button onclick="pushthm('ax-un');showstack()">axun</button>
-<button onclick="pushthm('ax-pow');showstack()">axpow</button>
-<button onclick="pushthm('ax-reg');showstack()">axreg</button>
-<button onclick="pushthm('ax-inf');showstack()">axinf</button>
-<button onclick="pushthm('ax-ac');showstack()">axac</button>
-<br>
-<button onclick="pushthm('df-clab');showstack()">dfclab</button>
-<button onclick="pushthm('df-cleq');showstack()">dfcleq</button>
-<button onclick="pushthm('df-clel');showstack()">dfclel</button>
-<button onclick="pushthm('df-sub');showstack()">dfsub</button>
-<button onclick="pushthm('df-un');showstack()">dfun</button>
-<button onclick="pushthm('df-in');showstack()">dfin</button>
-<button onclick="pushthm('df-nul');showstack()">dfnul</button>
-<button onclick="pushthm('df-v');showstack()">dfv</button>
-<button onclick="pushthm('df-uni');showstack()">dfuni</button>
-<button onclick="pushthm('df-int');showstack()">dfint</button>
-<button onclick="pushthm('df-pw');showstack()">dfpw</button>
-<button onclick="pushthm('df-sn');showstack()">dfsn</button>
-<button onclick="pushthm('df-pr');showstack()">dfpr</button>
-<button onclick="pushthm('df-op');showstack()">dfop</button>
-<button onclick="pushthm('df-suc');showstack()">dfsuc</button>
-<br>
-<button onclick="undo();showstack()">undo</button>
-<button onclick="redo();showstack()">redo</button>
-<button onclick="animation(redostack.length)">animation</button>
-<button onclick="clickstorm(30)">prove stuff</button>
-<button onclick="deletetos();showstack()">delete top</button>
-<button onclick="swaptos();showstack()">swap top</button>
-<button onclick="savethm()">save top</button>
-<button onclick="loadthm();showstack()">load</button>
-<button onclick="console.log(showproof(stack[stack.length-1]));alert(showproof(stack[stack.length-1]))">export top</button>
-<button onclick="importthm();showstack()">import</button>
-<br>
-<button onclick="settings.unicode^=1;showstack()">toggle unicode</button>
-<button onclick="settings.varcolors^=1;showstack()">toggle varcolors</button>
-<button onclick="settings.reverse^=1;showstack()">toggle reverse stack</button>
-<button onclick="settings.fullproofs^=1">toggle export full proofs</button>
-<button onclick="settings.debugu^=1;alert('toggled')"">toggle wii u test</button>
+<table><tr>
+<td>Propositional calculus</td>
+<td><button onclick="pushclick('ax-1')">ax1</button></td>
+<td><button onclick="pushclick('ax-2')">ax2</button></td>
+<td><button onclick="pushthm('ax-3');showstack()">ax3</button></td>
+<td><button onclick="mp();showstack()">axmp</button></td>
+<td><button onclick="pushthm('df-bi1');showstack()">dfbi1</button></td>
+<td><button onclick="pushthm('df-bi2');showstack()">dfbi2</button></td>
+<td><button onclick="pushthm('df-bi3');showstack()">dfbi3</button></td>
+<td><button onclick="pushthm('df-or');showstack()">dfor</button></td>
+<td><button onclick="pushthm('df-an');showstack()">dfan</button></td>
+</tr><tr>
+<td>Predicate calculus 1</td>
+<td><button onclick="pushthm('ax-4');showstack()">axc5</button></td>
+<td><button onclick="pushthm('ax-5');showstack()">ax4</button></td>
+<td><button onclick="pushthm('ax-5o');showstack()">axc4</button></td>
+<td><button onclick="pushthm('ax-6');showstack()">ax10</button></td>
+<td><button onclick="pushthm('ax-7');showstack()">ax11</button></td>
+<td><button onclick="gen();showstack()">axgen</button></td>
+<td><button onclick="pushthm('df-ex');showstack()">dfex</button></td>
+<td><button onclick="pushthm('df-eu');showstack()">dfeu</button></td>
+<td><button onclick="pushthm('df-mo');showstack()">dfmo</button></td>
+<td><button onclick="pushthm('df-nf');showstack()">dfnf</button></td>
+</tr><tr>
+<td>Predicate calculus 2</td>
+<td><button onclick="pushthm('ax-8');showstack()">ax7</button></td>
+<td><button onclick="pushthm('ax-9o');showstack()">axc10</button></td>
+<td><button onclick="pushthm('ax-10o');showstack()">axc11</button></td>
+<td><button onclick="pushthm('ax-11o');showstack()">axc15</button></td>
+<td><button onclick="pushthm('ax-12o');showstack()">axc9</button></td>
+<td><button onclick="pushthm('ax-13');showstack()">ax8</button></td>
+<td><button onclick="pushthm('ax-14');showstack()">ax9</button></td>
+<td><button onclick="pushthm('ax-16');showstack()">axc16</button></td>
+<td><button onclick="pushthm('ax-17');showstack()">ax5</button></td>
+<td><button onclick="pushthm('df-sb');showstack()">dfsb</button></td>
+</tr><tr>
+<td>Predicate calculus old</td>
+<td><button onclick="pushthm('ax-6a');showstack()">ax10a</button></td>
+<td><button onclick="pushthm('ax-6o');showstack()">axc7</button></td>
+<td><button onclick="pushthm('ax-9v');showstack()">ax6v</button></td>
+<td><button onclick="pushthm('ax-9');showstack()">ax6</button></td>
+<td><button onclick="pushthm('ax-10');showstack()">axc11n</button></td>
+<td><button onclick="pushthm('ax-11');showstack()">ax12</button></td>
+<td><button onclick="pushthm('ax-12v');showstack()">ax13v</button></td>
+<td><button onclick="pushthm('ax-12');showstack()">ax13</button></td>
+<td><button onclick="pushthm('ax-15');showstack()">axc14 </button></td>
+<td><button onclick="pushthm('ax-extv');showstack()">axextv</button></td>
+</tr><tr>
+<td>Set theory</td>
+<td><button onclick="pushthm('ax-ext');showstack()">axext</button></td>
+<td><button onclick="pushthm('ax-rep');showstack()">axrep</button></td>
+<td><button onclick="pushthm('ax-un');showstack()">axun</button></td>
+<td><button onclick="pushthm('ax-pow');showstack()">axpow</button></td>
+<td><button onclick="pushthm('ax-reg');showstack()">axreg</button></td>
+<td><button onclick="pushthm('ax-inf');showstack()">axinf</button></td>
+<td><button onclick="pushthm('ax-ac');showstack()">axac</button></td>
+</tr><tr>
+<td>Set theory definitions</td>
+<td><button onclick="pushthm('df-clab');showstack()">dfclab</button></td>
+<td><button onclick="pushthm('df-cleq');showstack()">dfcleq</button></td>
+<td><button onclick="pushthm('df-clel');showstack()">dfclel</button></td>
+<td><button onclick="pushthm('df-sub');showstack()">dfsub</button></td>
+<td><button onclick="pushthm('df-un');showstack()">dfun</button></td>
+<td><button onclick="pushthm('df-in');showstack()">dfin</button></td>
+<td><button onclick="pushthm('df-nul');showstack()">dfnul</button></td>
+<td><button onclick="pushthm('df-v');showstack()">dfv</button></td>
+<td><button onclick="pushthm('df-uni');showstack()">dfuni</button></td>
+<td><button onclick="pushthm('df-int');showstack()">dfint</button></td>
+<td><button onclick="pushthm('df-pw');showstack()">dfpw</button></td>
+<td><button onclick="pushthm('df-sn');showstack()">dfsn</button></td>
+<td><button onclick="pushthm('df-pr');showstack()">dfpr</button></td>
+<td><button onclick="pushthm('df-op');showstack()">dfop</button></td>
+<td><button onclick="pushthm('df-suc');showstack()">dfsuc</button></td>
+</tr></table><table><tr>
+<td><button onclick="undo();showstack()">undo</button></td>
+<td><button onclick="redo();showstack()">redo</button></td>
+<td><button onclick="animation(redostack.length)">animation</button></td>
+<td><button onclick="clickstorm(30)">prove stuff</button></td>
+<td><button onclick="deletetos();showstack()">delete top</button></td>
+<td><button onclick="swaptos();showstack()">swap top</button></td>
+<td><button onclick="savethm()">save top</button></td>
+<td><button onclick="loadthm();showstack()">load</button></td>
+<td><button onclick="console.log(showproof(stack[stack.length-1]));alert(showproof(stack[stack.length-1]))">export top</button></td>
+<td><button onclick="console.log(gend(showproof(stack[stack.length-1])));alert(gend(showproof(stack[stack.length-1])))">export top d</button></td>
+<td><button onclick="importthm();showstack()">import</button></td>
+</tr></table><table><tr>
+<td><button onclick="settings.unicode^=1;showstack()">toggle unicode</button></td>
+<td><button onclick="settings.varcolors^=1;showstack()">toggle varcolors</button></td>
+<td><button onclick="settings.reverse^=1;showstack()">toggle reverse stack</button></td>
+<td><button onclick="settings.fullproofs^=1">toggle export full proofs</button></td>
+<td><button onclick="settings.debugu^=1;alert('toggled')"">toggle wii u test</button></td>
+</tr></table>
 <div id="stackbox"></div>
 <a href="http://us.metamath.org/mpeuni/mmset.html">Metamath</a>
 </body>
