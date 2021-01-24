@@ -219,13 +219,14 @@ function renumber(exp,afters,lb,gb){
 				gb2=gb
 			}else{
 				gb2=Object.assign({},gb)
-				if(!afters2[exp.sort]){
+				/*if(!afters2[exp.sort]){
 					afters2[exp.sort]=0
 				}
 				gb2[[exp.sort,exp.id]]=afters2[exp.sort]
-				afters2[exp.sort]++
+				afters2[exp.sort]++*/
+				gb2[[exp.sort,exp.id]]=exp.id //don't renumber globals
 			}
-			return {exp:{type:"var",scope:"g",quant:exp.quant,sort:exp.sort,id:gb[[exp.sort,exp.id]]},afters:afters2,lb:lb,gb:gb2}
+			return {exp:{type:"var",scope:"g",quant:exp.quant,sort:exp.sort,id:gb2[[exp.sort,exp.id]]},afters:afters2,lb:lb,gb:gb2}
 		}
 	}else{
 		var exp2=Object.assign({},exp)
@@ -286,15 +287,31 @@ function mp(){
 	var min=stack.pop()
 	var uni=unify([[maj.formula,{type:"const",op:"->",sort:"wff",0:min.formula,1:{type:"var",scope:"l",quant:"u",sort:"wff",id:-1}}]],min.dv.concat(maj.dv))
 	if(uni){
+		//update global vars
+		//console.log(uni)
+		var remap={}
+		for(var i=0;i<uni.eq.length;i++){
+			if(uni.eq[i][0].scope=="g"){
+				if(!globalvalues[uni.eq[i][0].sort]){
+					globalvalues[uni.eq[i][0].sort]={}
+				}
+				globalvalues[uni.eq[i][0].sort][uni.eq[i][0].id]=globalize(uni.eq[i][1],remap,true)
+			}else if(uni.eq[i][1].scope=="g"){
+				if(!remap[uni.eq[i][0].sort]){
+					remap[uni.eq[i][0].sort]={}
+				}
+				remap[uni.eq[i][0].sort][uni.eq[i][0].id]=[uni.eq[i][1].sort,uni.eq[i][1].id]
+			}
+		}
 		pushundo({action:"mp",min:min,maj:maj})
 		var dv2=uni.dv
-		var form;
+		var form=globalize({type:"var",scope:"l",quant:"u",sort:"wff",id:-1},remap,false);
 		for(var i=0;i<uni.eq.length;i++){
 			if(uni.eq[i][0].id==-1){
-				form=uni.eq[i][1]
-			}else if(uni.eq[i][1].id==-1){
-				form=uni.eq[i][0]
-			}
+				form=globalize(uni.eq[i][1],remap,false)
+			}/*else if(uni.eq[i][1].id==-1){
+				form=globalize(uni.eq[i][0],remap,false)
+			}*/
 		}
 		for(var i=0;i<dv2.length;i++){
 			//if(!dv2[i].every(a=>vars(form).some(b=>termeq(a,b)))){
@@ -303,9 +320,64 @@ function mp(){
 			}
 		}
 		stack.push({formula:form,proof:{name:"ax-mp",args:[min,maj]},dv:dv2,compound:2})
+		for(var i=0;i<stack.length;i++){
+			stack[i].formula=fixglobals(stack[i].formula)
+		}
 	}else{
 		stack.push(min)
 		stack.push(maj)
+	}
+}
+function globalize(x,remap,all){
+	if(x.type=="var"){
+		//console.log(x,remap,all)
+		if(x.scope=="l"&&remap[x.sort]&&remap[x.sort][x.id]){
+			//console.log("done",remap[x.sort][x.id])
+			return {type:'var',scope:'g',quant:'u',sort:remap[x.sort][x.id][0],id:remap[x.sort][x.id][1]}
+		}else if(x.scope=="l"&&all){
+			if(!remap[x.sort]){
+				remap[x.sort]={}
+			}
+			if(!globalcounts[x.sort]){
+				globalcounts[x.sort]=0
+			}
+			remap[x.sort][x.id]=[x.sort,globalcounts[x.sort]++]
+			return {type:'var',scope:'g',quant:'u',sort:remap[x.sort][x.id][0],id:remap[x.sort][x.id][1]}
+		}
+		return Object.assign({},x)
+	}else if(x.name){
+		var t=Object.assign({},x)
+		for(var i=0;i<t.args.length;i++){
+			t.args[i]=globalize(t.args[i],remap,all)
+		}
+		return t
+	}else{
+		var t=Object.assign({},x)
+		for(var i=0;i<connectives[t.op].in.length;i++){
+			t[i]=globalize(t[i],remap,all)
+		}
+		return t
+	}
+}
+function fixglobals(x){
+	if(x.type=="var"){
+		if(x.scope=="g"&&globalvalues[x.sort]&&globalvalues[x.sort][x.id]&&(globalvalues[x.sort][x.id].type!="var"||globalvalues[x.sort][x.id].id!=x.id)){
+			globalvalues[x.sort][x.id]=fixglobals(globalvalues[x.sort][x.id])
+			return globalvalues[x.sort][x.id]
+		}
+		return Object.assign({},x)
+	}else if(x.name){
+		var t=Object.assign({},x)
+		for(var i=0;i<t.args.length;i++){
+			t.args[i]=fixglobals(t.args[i])
+		}
+		return t
+	}else{
+		var t=Object.assign({},x)
+		for(var i=0;i<connectives[t.op].in.length;i++){
+			t[i]=fixglobals(t[i])
+		}
+		return t
 	}
 }
 function gen(){
@@ -340,6 +412,10 @@ function undo(){
 		stack.push(undone.hyp)
 	}else if(undone.action=="thm"){
 		stack.pop()
+	}else if(undone.action=="delete2"){
+		stack.splice(undone.loc,undone.val)
+	}else if(undone.action=="copy"){
+		stack.pop()
 	}
 }
 function redo(){
@@ -355,6 +431,10 @@ function redo(){
 		gen()
 	}else if(redone.action=="thm"){
 		pushthm(redone.name)
+	}else if(redone.action=="delete2"){
+		deletesomewhere(redone.loc)
+	}else if(redone.action=="copy"){
+		copysomewhere(redone.loc)
 	}
 	redostack=t
 }
@@ -369,8 +449,22 @@ function swaptos(){
 	stack.push(s)
 	pushundo({action:"swap"})
 }
+function deletesomewhere(n){
+	var t=stack.splice(n,1)[0]
+	pushundo({action:"delete2",loc:n,val:t})
+}
+function copysomewhere(n){
+	stack.push(deepcopy(stack[n]))
+	pushundo({action:"copy",loc:n})
+}
+function usesomewhere(n){
+	copysomewhere(n)
+	swaptos()
+	mp()
+}
 displayascii={"->":["(",0,"->",1,")"],"~":["~",0],"<->":["(",0,"<->",1,")"],"&":["(",0,"/\\",1,")"],"|":["(",0,"\\/",1,")"],"A.":["A",0,1],"E.":["E",0,1],"E!":["E!",0,1],"E*":["E*",0,1],"F.":["NF",0,1],"=":[0,"=",1],"<":[0,"&lt;",1],"set":[0],"sub":["[",0,"/",1,"]",2],"ab":["{",0,"|",1,"}"],"<=":[0,"<=",1],"u.":["(",0,"u.",1,")"],"i.":["(",0,"i.",1,")"],"(/)":["(/)"],"V.":["V."],"U.":["U.",0],"I.":["I.",0],"P.":["P.",0],"{1}":["{",0,"}"],"{2}":["{",0,",",1,"}"],"<2>":["<",0,",",1,">"],"S":["suc",0]}
 displayunicode={"->":["(",0,"&#x2192;",1,")"],"~":["&#xAC;",0],"<->":["(",0,"&#x2194;",1,")"],"&":["(",0,"&#x2227;",1,")"],"|":["(",0,"&#x2228;",1,")"],"A.":["&#x2200;",0,1],"E.":["&#x2203;",0,1],"E!":["&#x2203;!",0,1],"E*":["&#x2203;*",0,1],"F.":["&#x2132;",0,1],"=":[0,"=",1],"<":[0,"&#x2208;",1],"set":[0],"sub":["[",0,"/",1,"]",2],"ab":["{",0,"|",1,"}"],"<=":[0,"&#x2286;",1],"u.":["(",0,"&#x222A;",1,")"],"i.":["(",0,"&#x2229;",1,")"],"(/)":["&#x2298;"],"V.":["V."],"U.":["&#x222A;",0],"I.":["&#x2229;",0],"P.":["&#x1D4AB;",0],"{1}":["{",0,"}"],"{2}":["{",0,",",1,"}"],"<2>":["&#x3008;",0,",",1,"&#x3009;"],"S":["suc",0]}
+displayhtml={"->":["(",0,"&#x2192;",1,")"],"~":["&#xAC;",0],"<->":["(",0,"&#x2194;",1,")"],"&":["(",0,"&#x2227;",1,")"],"|":["(",0,"&#x2228;",1,")"],"A.":["&#x2200;",0,1],"E.":["&#x2203;",0,1],"E!":["&#x2203;!",0,1],"E*":["&#x2203;*",0,1],"F.":["&#x2132;",0,1],"=":[0,"=",1],"<":[0,"&#x2208;",1],"set":[0],"sub":["[",0,"/",1,"]",2],"ab":["{",0,"|",1,"}"],"<=":[0,"&#x2286;",1],"u.":["(",0,"&#x222A;",1,")"],"i.":["(",0,"&#x2229;",1,")"],"(/)":["&#x2298;"],"V.":["V."],"U.":["&#x222A;",0],"I.":["&#x2229;",0],"P.":["&#x1D4AB;",0],"{1}":["{",0,"}"],"{2}":["{",0,",",1,"}"],"<2>":["&#x3008;",0,",",1,"&#x3009;"],"S":["suc",0]}
 function print(exp){
 	if(exp.type=="var"){
 		var varnames;
@@ -389,6 +483,9 @@ function print(exp){
 			left_tag='<span class="var_'+exp.sort+'">'
 			right_tag='</span>'
 		}
+		if(exp.scope=="g"){
+			left_tag+="$"
+		}
 		if(exp.id<11){
 			return left_tag+varnames[exp.id]+right_tag
 		}else{
@@ -396,13 +493,9 @@ function print(exp){
 		}
 
 	}else{
-		var display;
-		if(settings.unicode){
-			display=displayunicode
-		}else{
-			display=displayascii
-		}
+		var display=[displayascii,displayunicode,displayhtml][settings.unicode]
 		var t=""
+		//console.log(exp.op)
 		for(var i=0;i<display[exp.op].length;i++){
 			if(typeof display[exp.op][i]=="number"){
 				t+=print(exp[display[exp.op][i]])
@@ -471,6 +564,7 @@ function deepcopy(x){
 }
 function pushthm(name){
 	stack.push(deepcopy(saved[name]))
+	stack[stack.length-1].formula=fixglobals(stack[stack.length-1].formula)
 	pushundo({action:"thm",name:name})
 }
 function savethm(){
@@ -496,9 +590,29 @@ function importthm(){
 		}
 	}
 }
+function importthmd(){
+	var t=prompt("D string")
+	for(var i=t.length-1;i>=0;i--){
+		if(t[i]=="D"){
+			mp()
+		}else if(t[i]=="G"){
+			gen()
+		}else if(t[i]=="\n"){
+			
+		}else{
+			pushthm("ax-"+t[i])
+		}
+	}
+}
 stack=[]
 undostack=[]
 redostack=[]
+//values of global vars
+globalvalues={"wff":{}}
+//number of globals of each sort
+globalcounts={"wff":0}
+//number of assumptions made
+assumptions=0
 //axioms (except mp and gen)
 saved={
 	'ax-1':parseaxiom([0,1,'->',0,'->'],[],'ax-1'),
@@ -562,6 +676,19 @@ saved={
 	'df-op':parseaxiom([2,1,'{2}',1,'{1}','{2}',0,'set','<','V.',1,'<','V.',0,'<','&','&',0,'ab',1,0,'<2>','='],[],'df-op'),
 	'df-suc':parseaxiom([0,'{1}',0,'u.',0,'S','='],[],'df-suc')
 }
+function renumberq(x){
+	var c=0
+	var m={}
+	for(var i=x.length-1;i>=0;i--){
+		if(typeof x[i]=="number"){
+			if(m[x[i]]===undefined){
+				m[x[i]]=c++
+			}
+			x[i]=m[x[i]]
+		}
+	}
+	return JSON.stringify(x).replace(/"/g,"'")
+}
 function dvreplace(dv,rep){
 	if(dv.length){
 		var t=[]
@@ -580,6 +707,9 @@ function dvreplace(dv,rep){
 function renumberstack(){
 	var afters=0;
 	var gb={};
+	for(var i=0;i<stack.length;i++){
+		stack[i].formula=fixglobals(stack[i].formula)
+	}
 	if(settings.reverse){
 		for(var i=stack.length-1;i>=0;i--){
 			var t=renumber(stack[i].formula,afters,{},gb)
@@ -598,6 +728,12 @@ function renumberstack(){
 		}	
 	}
 }
+function buttons(i){
+	if(settings.reverse){
+		i=stack.length-1-i
+	}
+	return '<button onclick="deletesomewhere('+i+');showstack()">Delete</button><button onclick="copysomewhere('+i+');showstack()">Copy</button><button onclick="usesomewhere('+i+');showstack()">Use</button>'
+}
 function renderstack(sep){
 	renumberstack()
 	if(settings.reverse){
@@ -605,6 +741,7 @@ function renderstack(sep){
 	}
 	//var ret=stack.map(a=>printdv(a)).join(sep)
 	var ret=stack.map(printdv).join(sep)
+	var ret=stack.map((a,i)=>buttons(i)+printdv(a)).join(sep)
 	if(settings.reverse){
 		stack.reverse()
 	}
@@ -649,7 +786,7 @@ function clickstorm(rep){
 		setTimeout(100,clickstorm(rep-1))
 	}
 }
-settings={unicode:true,varcolors:true,reverse:true}
+settings={unicode:2,varcolors:true,reverse:true}
 function animation(fwd){
 	if(fwd){
 		if(redostack.length){
@@ -666,9 +803,102 @@ function animation(fwd){
 	}
 }
 function gend(proof){
-	var ret=proof.replace(/ ax-/g,"").replace(/mp/g,"D").replace(/gen/g,"G").split("").reverse().join("")
+	var ret=proof.replace(/ ?ax-/g,"").replace(/mp/g,"D").replace(/gen/g,"G").split("").reverse().join("")
 	console.log(ret.length)
 	return ret	
+}
+function dedth(proof,hypname){
+	var terms=proof.split(" ")
+	var stack=[]
+	var notes=[]
+	for(var i=0;i<terms.length;i++){
+		if(terms[i]=="ax-mp"){
+			var maj=stack.pop()
+			var min=stack.pop()
+			var majtype=notes.pop()
+			var mintype=notes.pop()
+			if(majtype==0){
+				if(mintype==0){
+					stack.push(min.concat(maj).concat(["ax-mp"]))
+					notes.push(0)
+				}else if(mintype==1){
+					stack.push(min.concat(maj).concat(["ax-1","ax-mp","ax-2","ax-mp","ax-mp"]))
+					notes.push(1)
+				}else if(mintype==2){
+					stack.push(maj)
+					notes.push(1)
+				}
+			}else{
+				if(mintype==0){
+					stack.push(min.concat(["ax-1","ax-mp"]).concat(maj).concat(["ax-2","ax-mp","ax-mp"]))
+					notes.push(1)
+				}else{
+					stack.push(min.concat(maj).concat(["ax-2","ax-mp","ax-mp"]))
+					notes.push(1)
+				}
+			}
+		}else if(terms[i]==hypname){
+			stack.push(["ax-1","ax-1","ax-2","ax-mp","ax-mp"])
+			notes.push(2)
+		}else{
+			stack.push([terms[i]])
+			notes.push(0)
+		}
+	}
+	if(!notes[0]){
+		stack[0]=stack[0].concat(["ax-1","ax-mp"])
+	}
+	return stack[0].join(" ")
+}
+function multidedth(proof,names){
+	for(var i=0;i<names.length;i++){
+		proof=dedth(proof,names[i])
+	}
+	return proof
+}
+function beta(fun,app){
+	//console.log("beta",linearize(fun),"@",linearize(app))
+	if(fun.type=="ax-2"&&fun.args.length==2){
+		//console.log("S rule",linearize(app)+" "+linearize(fun.args[1])+" ax-mp "+linearize(app)+" "+linearize(fun.args[0])+" ax-mp ax-mp")
+		var r=beta(beta(fun.args[0],app),beta(fun.args[1],app))
+	}else if(fun.type=="ax-1"&&fun.args.length==1){
+		//console.log("K rule")
+		var r=fun.args[0]
+	}else{
+		//console.log("No reduction")
+		var r={type:fun.type,args:fun.args.concat([app])}
+	}
+	//console.log("returns",linearize(r))
+	return r
+}
+function linearize(fun){
+	var ret=[]
+	for(var i=fun.args.length-1;i>=0;i--){
+		ret.push(linearize(fun.args[i]))
+	}
+	ret.push(fun.type)
+	if(fun.type!="ax-gen"){
+		for(var i=0;i<fun.args.length;i++){
+			ret.push("ax-mp")
+		}
+	}
+	return ret.join(" ")
+}
+function reduce(thm){
+	var terms=thm.split(" ")
+	var stack=[]
+	for(var i=0;i<terms.length;i++){
+		if(terms[i]=="ax-mp"){
+			var maj=stack.pop()
+			var min=stack.pop()
+			stack.push(beta(maj,min))
+		}else if(terms[i]=="ax-gen"){
+			stack.push({type:terms[i],args:[stack.pop()]})
+		}else{
+			stack.push({type:terms[i],args:[]})
+		}
+	}
+	return linearize(stack[0])
 }
 //test script for b1/2 features, might not work anymore
 function test(){
@@ -714,6 +944,24 @@ function keyboard(){
 	}
 	document.addEventListener("keydown",keypress)
 }
+function assume(n,m){
+	function subassume(){
+		if(!globalvalues.wff[n]){
+			globalvalues.wff[n]={type:'var',scope:'g',quant:'u',sort:'wff',id:n}
+		}
+		stack.push({formula:{type:'var',scope:'g',quant:'u',sort:'wff',id:n},proof:{name:"hyp"+m,args:[]},dv:[],compound:0,thmname:undefined})
+		showstack()
+	}
+	return subassume
+}
+function newassumption(){
+	var button=document.createElement("button")
+	button.textContent=assumptions+""
+	saved["hyp"+assumptions]={formula:{type:'var',scope:'g',quant:'u',sort:'wff',id:globalcounts.wff},proof:{name:"hyp"+assumptions,args:[]},dv:[],compound:0,thmname:undefined}
+	button.addEventListener("click",assume(globalcounts.wff++,assumptions++))
+	var cell=assumptionsrow.insertCell(-1)
+	cell.appendChild(button)
+}
 </script>
 <style>
 .var_wff {
@@ -728,7 +976,7 @@ function keyboard(){
 </style>
 </head>
 <body onload="keyboard()">
-Metamath Solitaire JS (build 8.4.2, July 20)
+Metamath Solitaire JS (build 9, October 14)
 <br>
 <table><tr>
 <td>Propositional calculus</td>
@@ -815,8 +1063,11 @@ Metamath Solitaire JS (build 8.4.2, July 20)
 <td><button onclick="console.log(showproof(stack[stack.length-1]));alert(showproof(stack[stack.length-1]))">export top</button></td>
 <td><button onclick="console.log(gend(showproof(stack[stack.length-1])));alert(gend(showproof(stack[stack.length-1])))">export top d</button></td>
 <td><button onclick="importthm();showstack()">import</button></td>
+<td><button onclick="importthmd();showstack()">import d</button></td>
+</tr><tr id="assumptionsrow">
+<td><button onclick="newassumption();showstack()">add assumption</button></td>
 </tr></table><table><tr>
-<td><button onclick="settings.unicode^=1;showstack()">toggle unicode</button></td>
+<td><button onclick="settings.unicode+=1;settings.unicode%=3;showstack()">toggle unicode</button></td>
 <td><button onclick="settings.varcolors^=1;showstack()">toggle varcolors</button></td>
 <td><button onclick="settings.reverse^=1;showstack()">toggle reverse stack</button></td>
 <td><button onclick="settings.fullproofs^=1">toggle export full proofs</button></td>
